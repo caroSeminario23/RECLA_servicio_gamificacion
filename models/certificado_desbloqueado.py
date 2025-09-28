@@ -37,6 +37,11 @@ class CertificadoDesbloqueado(db.Model):
         nullable=True
     )
 
+    revisado = db.Column(
+        db.Boolean,
+        nullable=True
+    )
+
 
     # Objeto
     def __init__(self,

@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from utils.db import db
+from utils.servicios_externos import VERIFICADOR_PUNTOS_STICKER, AUMENTAR_EXPERIENCIA
 from models.sticker import Sticker
 from models.sticker_desbloqueado import StickerDesbloqueado
 from schemas.sticker_desbloqueado import stickers_con_estado_schema
@@ -102,7 +103,7 @@ def desbloquear_sticker():
         precio_sticker = sticker.precio
 
         ## Llmar al servicio de usuario para verificar puntos
-        servicio_verificador = "http://localhost:5001/usuario/verificar_puntos" # MODIFICAR POR LA URL CORRECTA DEL SERVICIO
+        servicio_verificador = VERIFICADOR_PUNTOS_STICKER
 
         respuesta_servicio = request.post(servicio_verificador, json={
             'id_usuario': id_usuario,
@@ -131,6 +132,21 @@ def desbloquear_sticker():
                 'message': 'El sticker ya ha sido desbloqueado por este usuario'
             }), 400)
         
+        # Llamar al servicio para que aumente puntos de experiencia al usuario
+        servicio_experiencia = AUMENTAR_EXPERIENCIA
+
+        respuesta_experiencia = request.post(servicio_experiencia, json={
+            'id_usuario': id_usuario,
+            'motivo': 3  # Motivo 3: Desbloqueo de sticker
+        })
+
+        if respuesta_experiencia.status_code != 200:
+            return make_response(jsonify({
+                'status': respuesta_experiencia.status_code,
+                'message': 'Error aumentando experiencia con el servicio de usuario'
+            }), respuesta_experiencia.status_code)
+        
+        # Respuesta exitosa, proceder a responder
         data = {
             'message': 'Sticker desbloqueado exitosamente',
             "status": 201

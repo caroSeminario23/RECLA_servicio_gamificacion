@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
 from utils.db import db
+from utils.servicios_externos import VERIFICADOR_PUNTOS_INSIGNIA, AUMENTAR_EXPERIENCIA
 from models.insignia import Insignia
 from models.insignia_desbloqueada import InsigniaDesbloqueada
 from schemas.insignia import insignia_schema_detalle
@@ -117,7 +118,7 @@ def get_detalle_insignia():
         }), 500)
     
 
-# DESBLOQUEAR INSIGNIA
+# DESBLOQUEAR INSIGNIA (CANJEAR)
 @insignia_routes.route('/desbloquear_insignia', methods=['POST'])
 def desbloquear_insignia():
     try:
@@ -150,8 +151,8 @@ def desbloquear_insignia():
         tipo_insignia = insignia.tipo_ptos
         precio_insignia = insignia.ptos_necesarios
 
-        ## Llamar al servicio de usuario para verificar puntos
-        servicio_verificador = "http://localhost:5001/usuario/verificar_puntos" # MODIFICAR POR LA URL CORRECTA DEL SERVICIO
+        ## Llamar al servicio de usuario para verificar puntos (si tiene suficientes los resta)
+        servicio_verificador = VERIFICADOR_PUNTOS_INSIGNIA
         
         respuesta_servicio = request.post(servicio_verificador, json={
             'id_usuario': id_usuario,
@@ -181,6 +182,21 @@ def desbloquear_insignia():
                 'message': 'La insignia ya está desbloqueada para este usuario o los datos son inválidos'
             }), 400)
         
+        # Llamar al servicio para que aumente puntos de experiencia al usuario
+        servicio_experiencia = AUMENTAR_EXPERIENCIA
+
+        respuesta_experiencia = request.post(servicio_experiencia, json={
+            'id_usuario': id_usuario,
+            'motivo': 1  # Motivo 1: Desbloqueo de insignia
+        })
+
+        if respuesta_experiencia.status_code != 200:
+            return make_response(jsonify({
+                'status': respuesta_experiencia.status_code,
+                'message': 'Error aumentando experiencia con el servicio de usuario'
+            }), respuesta_experiencia.status_code)
+        
+        # Respuesta exitosa, proceder a responder
         data = {
             "message": "Insignia desbloqueada correctamente",
             "status": 201

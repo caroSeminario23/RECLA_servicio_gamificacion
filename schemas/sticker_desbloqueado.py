@@ -22,5 +22,5 @@ class StickerDesbloqueadoConEstadoSchema(ma.Schema):
 
 
 # INSTANCIAS DE SCHEMAS
-sticker_desbloqueado_con_estado_schema = StickerDesbloqueadoConEstadoSchema()
-stickers_desbloqueados_con_estado_schema = StickerDesbloqueadoConEstadoSchema(many=True)
+sticker_con_estado_schema = StickerDesbloqueadoConEstadoSchema()
+stickers_con_estado_schema = StickerDesbloqueadoConEstadoSchema(many=True)

@@ -1,7 +1,10 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from utils.db import db
+from models.sticker import Sticker
+from models.sticker_desbloqueado import StickerDesbloqueado
 from schemas.sticker_desbloqueado import stickers_con_estado_schema
 
 sticker_routes = Blueprint('sticker_routes', __name__)
@@ -65,3 +68,79 @@ def get_stickers_con_estado():
     }
 
     return make_response(jsonify(data), 200)
+
+# DESBLOQUEAR STICKER
+@sticker_routes.route('/desbloquear_sticker', methods=['POST'])
+def desbloquear_sticker():
+    try:
+        # Validar que existe el JSON y los campos
+        required_fields = ['id_sticker', 'id_usuario']
+        if not request.json or not all(field in request.json for field in required_fields):
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'id_sticker e id_usuario son requeridos'
+            }), 400)
+        
+        id_sticker = request.json.get('id_sticker')
+        id_usuario = request.json.get('id_usuario')
+        
+        # Validar que no sean None o vacíos
+        if not id_sticker or not id_usuario:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'id_sticker e id_usuario no pueden estar vacíos'
+            }), 400)
+        
+        # Verificar que el usuario tenga el medio para pagarlo
+        sticker = Sticker.query.filter_by(id_sticker=id_sticker).first()
+        if not sticker:
+            return make_response(jsonify({
+                'status': 404,
+                'message': 'Sticker no encontrado'
+            }), 404)
+        
+        precio_sticker = sticker.precio
+
+        ## Llmar al servicio de usuario para verificar puntos
+        servicio_verificador = "http://localhost:5001/usuario/verificar_puntos" # MODIFICAR POR LA URL CORRECTA DEL SERVICIO
+
+        respuesta_servicio = request.post(servicio_verificador, json={
+            'id_usuario': id_usuario,
+            'precio_sticker': precio_sticker
+        })
+
+        if respuesta_servicio.status_code != 200:
+            return make_response(jsonify({
+                'status': respuesta_servicio.status_code,
+                'message': 'Error verificando puntos con el servicio de usuario'
+            }), respuesta_servicio.status_code)
+
+        # Respuesta exitosa, proceder a desbloquear el sticker
+        nuevo_sticker_desbloqueado = StickerDesbloqueado(
+            id_usuario=id_usuario,
+            id_sticker=id_sticker
+        )
+
+        try:
+            db.session.add(nuevo_sticker_desbloqueado)
+            db.session.commit()
+        except IntegrityError as e:
+            db.session.rollback()
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'El sticker ya ha sido desbloqueado por este usuario'
+            }), 400)
+        
+        data = {
+            'message': 'Sticker desbloqueado exitosamente',
+            "status": 201
+        }
+
+        return make_response(jsonify(data), 201)
+    
+    except Exception as err:
+        print(f"Error en desbloquear_sticker: {err}")  # Para debugging
+        return make_response(jsonify({
+            'status': 500,
+            'message': 'Error procesando la solicitud'
+        }), 500)

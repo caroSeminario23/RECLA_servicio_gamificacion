@@ -102,7 +102,7 @@ def desbloquear_sticker():
         
         precio_sticker = sticker.precio
 
-        ## Llmar al servicio de usuario para verificar puntos
+        ## Llamar al servicio de usuario para verificar puntos
         servicio_verificador = VERIFICADOR_PUNTOS_STICKER
 
         respuesta_servicio = request.post(servicio_verificador, json={

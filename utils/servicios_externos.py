@@ -1,5 +1,7 @@
-VERIFICADOR_PUNTOS_INSIGNIA = "http://localhost:5001/usuario/verificar_puntos"
+URL_BASE = "http://localhost:5001"
 
-VERIFICADOR_PUNTOS_STICKER = "http://localhost:5001/usuario/verificar_puntos_sticker"
+VERIFICADOR_PUNTOS_INSIGNIA = f"{URL_BASE}/estatus_routes/verificar_puntos_insignia"
 
-AUMENTAR_EXPERIENCIA = "http://localhost:5001/usuario/aumentar_experiencia"
+VERIFICADOR_PUNTOS_STICKER = f"{URL_BASE}/estatus_routes/verificar_puntos_sticker"
+
+AUMENTAR_EXPERIENCIA = f"{URL_BASE}/estatus_routes/aumentar_experiencia"

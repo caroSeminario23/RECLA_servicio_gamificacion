@@ -22,6 +22,6 @@ Content-Type: application/json
 
 {
     "id_certificado": 1,
-    "id_usuario": 2
+    "id_usuario": 7
 }
 ###

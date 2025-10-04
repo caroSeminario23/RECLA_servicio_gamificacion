@@ -7,7 +7,7 @@ from utils.servicios_externos import AUMENTAR_EXPERIENCIA
 from models.certificado import Certificado
 from models.certificado_desbloqueado import CertificadoDesbloqueado
 from schemas.certificado import certificado_detalle_schema
-from schemas.certificado_desbloqueado import certificado_con_estado_schema
+from schemas.certificado_desbloqueado import certificados_con_estado_schema
 
 certificado_routes = Blueprint('certificado_routes', __name__)
 
@@ -45,13 +45,16 @@ def get_certificados_con_estado():
         C.nombre, 
         C.url_imagen, 
         C.nivel,
-        CD.revisado,
         COALESCE(CD.id_usuario, :id_usuario) as id_usuario,
         CASE 
             WHEN CD.id_certificado IS NOT NULL 
             THEN true
             ELSE false
-        END as desbloqueado
+        END as desbloqueado,
+        CASE
+			WHEN CD.revisado IS NULL
+			THEN false
+		END as revisado
     FROM certificado as C
     LEFT JOIN certificado_desbloqueado as CD 
         ON C.id_certificado = CD.id_certificado 
@@ -62,7 +65,7 @@ def get_certificados_con_estado():
     certificados_con_estado = db.session.execute(text(consulta_certificados_con_estado), {'id_usuario': id_usuario})
 
     resultado_raw = [dict(row._mapping) for row in certificados_con_estado]
-    resultado = certificado_con_estado_schema.dump(resultado_raw)
+    resultado = certificados_con_estado_schema.dump(resultado_raw)
 
     data = {
         'message': 'Certificados obtenidos exitosamente',
@@ -141,23 +144,28 @@ def marcar_certificado_revisado():
                 'message': 'id_certificado e id_usuario no pueden estar vacíos'
             }), 400)
         
-        certificado = CertificadoDesbloqueado.query.filter_by(id_certificado=id_certificado).first()
+        certificado = Certificado.query.filter_by(id_certificado=id_certificado).first()
 
         if not certificado:
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Certificado no encontrado'
             }), 404)
+        
+        certificado_desbloqueado = CertificadoDesbloqueado.query.filter_by(
+            id_certificado=id_certificado,
+            id_usuario=id_usuario
+        ).first()
 
         # Verificar si ya está marcado como revisado
-        if certificado.revisado:
+        if certificado_desbloqueado.revisado:
             return make_response(jsonify({
                 'status': 200,
                 'message': 'El certificado ya estaba marcado como revisado'
             }), 200)
 
         # Actualizar y guardar
-        certificado.revisado = True
+        certificado_desbloqueado.revisado = True
 
         try:
             db.session.commit()

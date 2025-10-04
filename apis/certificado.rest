@@ -1,14 +1,14 @@
 # PRESENTACIÓN DE CERTIFICADOS (INDICANDO LOS DESBLOQUEADOS)
-POST http://127.0.0.1:5000/certificado_routes/get_certificados_con_estado
+POST http://127.0.0.1:5001/certificado_routes/get_certificados_con_estado
 Content-Type: application/json
 
 {
-    "id_usuario": 1
+    "id_usuario": 7
 }
 ###
 
 # CONSULTAR DETALLE DE UN CERTIFICADO
-POST http://127.0.0.1:5000/certificado_routes/get_certificado_detalle
+POST http://127.0.0.1:5001/certificado_routes/get_detalle_certificado
 Content-Type: application/json
 
 {
@@ -17,7 +17,7 @@ Content-Type: application/json
 ###
 
 # MARCAR CERTIFICADO COMO REVISADO
-POST http://127.0.0.1:5000/certificado_routes/marcar_certificado_revisado
+POST http://127.0.0.1:5001/certificado_routes/marcar_certificado_revisado
 Content-Type: application/json
 
 {

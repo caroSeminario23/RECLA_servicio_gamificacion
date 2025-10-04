@@ -1,27 +1,27 @@
 # PRESENTACIÓN DE INSIGNIAS (INDICANDO LAS DESBLOQUEADAS)
-POST http://127.0.0.1:5000/insignia_routes/get_insignias_con_estado
+POST http://127.0.0.1:5001/insignia_routes/get_insignias_con_estado
 Content-Type: application/json
 
 {
-    "id_usuario": 1
+    "id_usuario": 7
 }
 ###
 
 # CONSULTAR DETALLE DE UNA INSIGNIA
-POST http://127.0.0.1:5000/insignia_routes/get_detalle_insignia
+POST http://127.0.0.1:5001/insignia_routes/get_detalle_insignia
 Content-Type: application/json
 
 {
-    "id_insignia": 1
+    "id_insignia": 21
 }
 ###
 
 # DESBLOQUEAR INSIGNIA (CANJEAR)
-POST http://127.0.0.1:5000/insignia_routes/desbloquear_insignia
+POST http://127.0.0.1:5001/insignia_routes/desbloquear_insignia
 Content-Type: application/json
 
 {
-    "id_insignia": 1,
-    "id_usuario": 2
+    "id_insignia": 19,
+    "id_usuario": 7
 }
 ###

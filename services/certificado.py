@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
+import requests
 
 from utils.db import db
 from utils.servicios_externos import AUMENTAR_EXPERIENCIA
 from models.certificado import Certificado
+from models.certificado_desbloqueado import CertificadoDesbloqueado
 from schemas.certificado import certificado_detalle_schema
 from schemas.certificado_desbloqueado import certificado_con_estado_schema
 
@@ -43,7 +45,7 @@ def get_certificados_con_estado():
         C.nombre, 
         C.url_imagen, 
         C.nivel,
-        C.revisado,
+        CD.revisado,
         COALESCE(CD.id_usuario, :id_usuario) as id_usuario,
         CASE 
             WHEN CD.id_certificado IS NOT NULL 
@@ -139,7 +141,7 @@ def marcar_certificado_revisado():
                 'message': 'id_certificado e id_usuario no pueden estar vacíos'
             }), 400)
         
-        certificado = Certificado.query.filter_by(id_certificado=id_certificado).first()
+        certificado = CertificadoDesbloqueado.query.filter_by(id_certificado=id_certificado).first()
 
         if not certificado:
             return make_response(jsonify({
@@ -170,7 +172,7 @@ def marcar_certificado_revisado():
         # Llamar al servicio para que aumente puntos de experiencia al usuario
         servicio_experiencia = AUMENTAR_EXPERIENCIA
 
-        respuesta_experiencia = request.post(servicio_experiencia, json={
+        respuesta_experiencia = requests.post(servicio_experiencia, json={
             'id_usuario': id_usuario,
             'motivo': 2  # Motivo 2: Desbloqueo de certificado
         })

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
+import requests
 
 from utils.db import db
 from utils.servicios_externos import VERIFICADOR_PUNTOS_INSIGNIA, AUMENTAR_EXPERIENCIA
@@ -154,7 +155,7 @@ def desbloquear_insignia():
         ## Llamar al servicio de usuario para verificar puntos (si tiene suficientes los resta)
         servicio_verificador = VERIFICADOR_PUNTOS_INSIGNIA
         
-        respuesta_servicio = request.post(servicio_verificador, json={
+        respuesta_servicio = requests.post(servicio_verificador, json={
             'id_usuario': id_usuario,
             'tipo_insignia': tipo_insignia,
             'precio_insignia': precio_insignia
@@ -185,7 +186,7 @@ def desbloquear_insignia():
         # Llamar al servicio para que aumente puntos de experiencia al usuario
         servicio_experiencia = AUMENTAR_EXPERIENCIA
 
-        respuesta_experiencia = request.post(servicio_experiencia, json={
+        respuesta_experiencia = requests.post(servicio_experiencia, json={
             'id_usuario': id_usuario,
             'motivo': 1  # Motivo 1: Desbloqueo de insignia
         })

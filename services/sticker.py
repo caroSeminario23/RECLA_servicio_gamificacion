@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
+import requests
 
 from utils.db import db
 from utils.servicios_externos import VERIFICADOR_PUNTOS_STICKER, AUMENTAR_EXPERIENCIA
@@ -105,7 +106,7 @@ def desbloquear_sticker():
         ## Llamar al servicio de usuario para verificar puntos
         servicio_verificador = VERIFICADOR_PUNTOS_STICKER
 
-        respuesta_servicio = request.post(servicio_verificador, json={
+        respuesta_servicio = requests.post(servicio_verificador, json={
             'id_usuario': id_usuario,
             'precio_sticker': precio_sticker
         })
@@ -135,7 +136,7 @@ def desbloquear_sticker():
         # Llamar al servicio para que aumente puntos de experiencia al usuario
         servicio_experiencia = AUMENTAR_EXPERIENCIA
 
-        respuesta_experiencia = request.post(servicio_experiencia, json={
+        respuesta_experiencia = requests.post(servicio_experiencia, json={
             'id_usuario': id_usuario,
             'motivo': 3  # Motivo 3: Desbloqueo de sticker
         })

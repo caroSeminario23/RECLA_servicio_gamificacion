@@ -27,3 +27,17 @@ class CertificadoConEstadoSchema(ma.Schema):
 # INSTANCIAS DE SCHEMAS
 certificado_con_estado_schema = CertificadoConEstadoSchema()
 certificados_con_estado_schema = CertificadoConEstadoSchema(many=True)
+
+
+class CertificadoCodValidacionSchema(ma.Schema):
+    class Meta:
+        fields = (
+            'cod_validacion',
+        )
+    
+    cod_validacion = fields.String()
+
+
+# INSTANCIAS DE SCHEMAS
+certificado_cod_validacion_schema = CertificadoCodValidacionSchema()
+certificados_cod_validacion_schema = CertificadoCodValidacionSchema(many=True)

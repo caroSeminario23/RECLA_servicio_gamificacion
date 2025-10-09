@@ -42,6 +42,15 @@ class CertificadoDesbloqueado(db.Model):
         nullable=True
     )
 
+    pdf_url = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    cod_validacion = db.Column(
+        db.String(8),
+        nullable=True
+    )
 
     # Objeto
     def __init__(self,

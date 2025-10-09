@@ -3,11 +3,14 @@ from sqlalchemy import text
 import requests
 
 from utils.db import db
-from utils.servicios_externos import AUMENTAR_EXPERIENCIA
+from utils.servicios_externos import AUMENTAR_EXPERIENCIA, OBTENER_CORREO_USUARIO
+from functions.generar_certificado import generar_certificado_pdf
+from functions.enviar_certificado import enviar_certificado_por_correo
 from models.certificado import Certificado
 from models.certificado_desbloqueado import CertificadoDesbloqueado
 from schemas.certificado import certificado_detalle_schema
-from schemas.certificado_desbloqueado import certificados_con_estado_schema
+from schemas.certificado_desbloqueado import (certificados_con_estado_schema,
+                                              certificados_cod_validacion_schema)
 
 certificado_routes = Blueprint('certificado_routes', __name__)
 
@@ -205,3 +208,97 @@ def marcar_certificado_revisado():
             'status': 500,
             'message': 'Error procesando la solicitud'
         }), 500)
+
+
+# ENVIAR CERTIFICADO POR CORREO
+@certificado_routes.route('/enviar_certificado', methods=['POST'])
+def enviar_certificado():
+    try:
+        # Validar que existe el JSON y los campos
+        required_fields = ['id_certificado', 'id_usuario', 'username', 'plantilla_url']
+        if not request.json or not all(field in request.json for field in required_fields):
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'id_certificado, id_usuario, username y plantilla_url son requeridos'
+            }), 400)
+        
+        id_certificado = request.json.get('id_certificado')
+        id_usuario = request.json.get('id_usuario')
+        username = request.json.get('username')
+        plantilla_url = request.json.get('plantilla_url')
+
+        # Validar que no sean None o vacíos
+        if not id_certificado or not id_usuario or not username or not plantilla_url:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'id_certificado, id_usuario, username y plantilla_url no pueden estar vacíos'
+            }), 400)
+        
+        # Verificar que el certificado esté desbloqueado para el usuario
+        certificado_desbloqueado = CertificadoDesbloqueado.query.filter_by(
+            id_certificado=id_certificado,
+            id_usuario=id_usuario
+        ).first()
+
+        if not certificado_desbloqueado:
+            return make_response(jsonify({
+                'status': 404,
+                'message': 'Certificado desbloqueado no encontrado para el usuario'
+            }), 404)
+        
+        certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().coordenadas
+        
+        if not certificado_desbloqueado.pdf_url:
+            generar_certificado_pdf(
+                username=username,
+                fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
+                plantilla_url=plantilla_url,
+                coordenadas=certificado_coordenadas
+            )
+        
+        # Obtener el URL del PDF desde la base de datos
+        pdf_url_certificado = CertificadoDesbloqueado.query.filter_by(
+            id_certificado=id_certificado,
+            id_usuario=id_usuario
+        ).first().pdf_url
+
+        if not pdf_url_certificado:
+            return make_response(jsonify({
+                'status': 404,
+                'message': 'PDF del certificado no encontrado'
+            }), 404)
+        
+        # Llamar al servicio para obtener la dirección de correo del usuario
+        servicio_usuario = OBTENER_CORREO_USUARIO
+
+        respuesta_usuario = requests.post(servicio_usuario, json={
+            'id_usuario': id_usuario
+        })
+
+        if respuesta_usuario.status_code != 200:
+            return make_response(jsonify({
+                'status': respuesta_usuario.status_code,
+                'message': 'Error obteniendo dirección de correo del usuario'
+            }), respuesta_usuario.status_code)
+
+        email_usuario = respuesta_usuario.json().get('email')
+
+        if not email_usuario:
+            return make_response(jsonify({
+                'status': 404,
+                'message': 'Correo del usuario no encontrado'
+            }), 404)
+
+        enviar_certificado_por_correo(
+            username=username,
+            email=email_usuario,
+            pdf_url=pdf_url_certificado
+        )
+
+    except Exception as err:
+        print(f"Error en enviar_certificado_pdf: {err}")  # Para debugging
+        return make_response(jsonify({
+            'status': 500,
+            'message': 'Error procesando la solicitud'
+        }), 500)
+   

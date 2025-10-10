@@ -21,7 +21,19 @@ POST http://127.0.0.1:5001/certificado_routes/marcar_certificado_revisado
 Content-Type: application/json
 
 {
-    "id_certificado": 1,
+    "id_certificado": 7,
     "id_usuario": 7
+}
+###
+
+# ENVIAR CERTIFICADO POR CORREO
+POST http://127.0.0.1:5001/certificado_routes/enviar_certificado
+Content-Type: application/json
+
+{
+    "id_certificado": 7,
+    "id_usuario": 7,
+    "username": "romero23",
+    "plantilla_url": "https://lyhgavhtpjtnozoabwqk.supabase.co/storage/v1/object/public/recla-images/certificados/certificado1.png"
 }
 ###

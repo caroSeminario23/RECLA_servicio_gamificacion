@@ -9,8 +9,7 @@ from functions.enviar_certificado import enviar_certificado_por_correo
 from models.certificado import Certificado
 from models.certificado_desbloqueado import CertificadoDesbloqueado
 from schemas.certificado import certificado_detalle_schema
-from schemas.certificado_desbloqueado import (certificados_con_estado_schema,
-                                              certificados_cod_validacion_schema)
+from schemas.certificado_desbloqueado import certificados_con_estado_schema
 
 certificado_routes = Blueprint('certificado_routes', __name__)
 
@@ -34,6 +33,42 @@ def get_certificados_con_estado():
                 'status': 400,
                 'message': 'id_usuario no puede estar vacío'
             }), 400)
+        
+        consulta_certificados_con_estado = """
+        SELECT 
+            C.id_certificado, 
+            C.nombre, 
+            C.url_imagen, 
+            C.nivel,
+            COALESCE(CD.id_usuario, :id_usuario) as id_usuario,
+            CASE 
+                WHEN CD.id_certificado IS NOT NULL 
+                THEN true
+                ELSE false
+            END as desbloqueado,
+            CASE
+                WHEN CD.revisado IS NULL
+                THEN false
+            END as revisado
+        FROM certificado as C
+        LEFT JOIN certificado_desbloqueado as CD 
+            ON C.id_certificado = CD.id_certificado 
+            AND CD.id_usuario = :id_usuario
+        ORDER BY C.id_certificado;    
+        """
+
+        certificados_con_estado = db.session.execute(text(consulta_certificados_con_estado), {'id_usuario': id_usuario})
+
+        resultado_raw = [dict(row._mapping) for row in certificados_con_estado]
+        resultado = certificados_con_estado_schema.dump(resultado_raw)
+
+        data = {
+            'message': 'Certificados obtenidos exitosamente',
+            "status": 200,
+            "data": resultado
+        }
+
+        return make_response(jsonify(data), 200)
             
     except Exception as err:
         print(f"Error en get_certificados_con_estado: {err}")  # Para debugging
@@ -42,43 +77,7 @@ def get_certificados_con_estado():
             'message': 'Error procesando la solicitud'
         }), 500)
 
-    consulta_certificados_con_estado = """
-    SELECT 
-        C.id_certificado, 
-        C.nombre, 
-        C.url_imagen, 
-        C.nivel,
-        COALESCE(CD.id_usuario, :id_usuario) as id_usuario,
-        CASE 
-            WHEN CD.id_certificado IS NOT NULL 
-            THEN true
-            ELSE false
-        END as desbloqueado,
-        CASE
-			WHEN CD.revisado IS NULL
-			THEN false
-		END as revisado
-    FROM certificado as C
-    LEFT JOIN certificado_desbloqueado as CD 
-        ON C.id_certificado = CD.id_certificado 
-        AND CD.id_usuario = :id_usuario
-    ORDER BY C.id_certificado;    
-    """
-
-    certificados_con_estado = db.session.execute(text(consulta_certificados_con_estado), {'id_usuario': id_usuario})
-
-    resultado_raw = [dict(row._mapping) for row in certificados_con_estado]
-    resultado = certificados_con_estado_schema.dump(resultado_raw)
-
-    data = {
-        'message': 'Certificados obtenidos exitosamente',
-        "status": 200,
-        "data": resultado
-    }
-
-    return make_response(jsonify(data), 200)
-
-
+    
 # CONSULTAR DETALLE DE UN CERTIFICADO
 @certificado_routes.route('/get_detalle_certificado', methods=['POST'])
 def get_detalle_certificado():
@@ -246,14 +245,16 @@ def enviar_certificado():
                 'message': 'Certificado desbloqueado no encontrado para el usuario'
             }), 404)
         
-        certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().coordenadas
+        certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().plantilla
         
         if not certificado_desbloqueado.pdf_url:
             generar_certificado_pdf(
                 username=username,
                 fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
                 plantilla_url=plantilla_url,
-                coordenadas=certificado_coordenadas
+                coordenadas=certificado_coordenadas,
+                id_usuario=id_usuario,
+                id_certificado=id_certificado
             )
         
         # Obtener el URL del PDF desde la base de datos
@@ -281,7 +282,7 @@ def enviar_certificado():
                 'message': 'Error obteniendo dirección de correo del usuario'
             }), respuesta_usuario.status_code)
 
-        email_usuario = respuesta_usuario.json().get('email')
+        email_usuario = respuesta_usuario.json().get('data', {}).get('email')
 
         if not email_usuario:
             return make_response(jsonify({
@@ -291,9 +292,15 @@ def enviar_certificado():
 
         enviar_certificado_por_correo(
             username=username,
-            email=email_usuario,
+            destinatario=email_usuario,
             pdf_url=pdf_url_certificado
         )
+
+        # Añadir después de enviar el correo:
+        return make_response(jsonify({
+            'status': 200,
+            'message': 'Certificado enviado exitosamente por correo'
+        }), 200)
 
     except Exception as err:
         print(f"Error en enviar_certificado_pdf: {err}")  # Para debugging

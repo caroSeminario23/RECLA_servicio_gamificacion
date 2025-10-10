@@ -71,6 +71,7 @@ def get_stickers_con_estado():
 
     return make_response(jsonify(data), 200)
 
+
 # DESBLOQUEAR STICKER
 @sticker_routes.route('/desbloquear_sticker', methods=['POST'])
 def desbloquear_sticker():

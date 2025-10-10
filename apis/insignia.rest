@@ -21,7 +21,7 @@ POST http://127.0.0.1:5001/insignia_routes/desbloquear_insignia
 Content-Type: application/json
 
 {
-    "id_insignia": 19,
+    "id_insignia": 21,
     "id_usuario": 7
 }
 ###

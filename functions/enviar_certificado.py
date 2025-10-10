@@ -1,11 +1,17 @@
-def enviar_certificado_por_correo(username, email, pdf_url):
+from flask_mail import Message
+from utils.mail import mail
+
+def enviar_certificado_por_correo(username, destinatario, pdf_url):
     try:
-        # Aquí se implementaría la lógica para enviar el correo electrónico
-        # con el certificado adjunto. Esto puede incluir el uso de una
-        # biblioteca de envío de correos como smtplib, Flask-Mail, etc.
-        print(f"Enviando certificado a {email} para el usuario {username} desde {pdf_url}")
-        # Simulación de envío exitoso
+        asunto = "RECLA - Certificado emitido"
+        cuerpo = f"Felicidades {username}, tu certificado ha sido emitido. Puedes descargarlo aquí: {pdf_url}"
+        
+        msg = Message(subject=asunto, recipients=[destinatario])
+        msg.body = cuerpo
+        mail.send(msg)
+        print("Certificado enviado exitosamente.")
         return True
+    
     except Exception as e:
         print(f"Error al enviar el certificado: {e}")
         return False

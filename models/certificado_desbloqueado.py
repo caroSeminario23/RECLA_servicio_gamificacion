@@ -52,6 +52,11 @@ class CertificadoDesbloqueado(db.Model):
         nullable=True
     )
 
+    fec_desbloqueo = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
     # Objeto
     def __init__(self,
                  id_usuario,

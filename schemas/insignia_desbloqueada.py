@@ -9,7 +9,6 @@ class InsigniaConEstadoSchema(ma.Schema):
             'nombre', 
             'url_imagen',
             'nivel',
-            'id_usuario',
             'desbloqueado'
         )
     
@@ -17,7 +16,6 @@ class InsigniaConEstadoSchema(ma.Schema):
     nombre = fields.String()
     url_imagen = fields.String()
     nivel = fields.Integer()
-    id_usuario = fields.Integer()
     desbloqueado = fields.Boolean()
 
 

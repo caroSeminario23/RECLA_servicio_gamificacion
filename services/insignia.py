@@ -18,28 +18,35 @@ insignia_routes = Blueprint('insignia_routes', __name__)
 def get_insignias_con_estado():
     try:
         # Validar que existe el JSON y el campo
-        if not request.json or 'id_usuario' not in request.json:
+        required_fields = ['id_usuario', 'tipo_ptos']
+        if not request.json or not all(field in request.json for field in required_fields):
             return make_response(jsonify({
                 'status': 400,
-                'message': 'id_usuario es requerido'
+                'message': 'Faltan campos requeridos (id_usuario, tipo_ptos)'
             }), 400)
             
         id_usuario = request.json.get('id_usuario')
-        
+        tipo_ptos = request.json.get('tipo_ptos')
+
         # Validar que no sea None o vacío
         if not id_usuario:
             return make_response(jsonify({
                 'status': 400,
                 'message': 'id_usuario no puede estar vacío'
             }), 400)
-            
+
+        if not tipo_ptos:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'tipo_ptos no puede estar vacío'
+            }), 400)
+
         consulta_insignias_con_estado = """
         SELECT 
             I.id_insignia, 
             I.nombre, 
             I.url_imagen, 
             I.nivel,
-            COALESCE(ID.id_usuario, :id_usuario) as id_usuario,
             CASE 
                 WHEN ID.id_insignia IS NOT NULL 
                 THEN true
@@ -49,10 +56,11 @@ def get_insignias_con_estado():
         LEFT JOIN insignia_desbloqueada as ID 
             ON I.id_insignia = ID.id_insignia 
             AND ID.id_usuario = :id_usuario
-        ORDER BY I.id_insignia;    
+        WHERE I.tipo_ptos = :tipo_ptos
+        ORDER BY I.id_insignia;
         """
 
-        insignias_con_estado = db.session.execute(text(consulta_insignias_con_estado), {'id_usuario': id_usuario})
+        insignias_con_estado = db.session.execute(text(consulta_insignias_con_estado), {'id_usuario': id_usuario, 'tipo_ptos': tipo_ptos}).fetchall()
 
         resultado_raw = [dict(row._mapping) for row in insignias_con_estado]
         resultado = insignias_con_estado_schema.dump(resultado_raw)

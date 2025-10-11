@@ -3,7 +3,8 @@ POST http://127.0.0.1:5001/insignia_routes/get_insignias_con_estado
 Content-Type: application/json
 
 {
-    "id_usuario": 7
+    "id_usuario": 7,
+    "tipo_ptos": 1
 }
 ###
 
@@ -21,7 +22,7 @@ POST http://127.0.0.1:5001/insignia_routes/desbloquear_insignia
 Content-Type: application/json
 
 {
-    "id_insignia": 21,
+    "id_insignia": 24,
     "id_usuario": 7
 }
 ###

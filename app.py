@@ -16,9 +16,10 @@ init_mail(app)
 
 CORS(
     app, 
-    origins = ['http://localhost:*', 'http://127.0.0.1:*'], #dirección del front-end
-    methods = ['GET', 'POST', 'PUT', 'DELETE'],
-    allow_headers = ['Content-Type', 'Authorization']
+    origins = "*", #dirección del front-end
+    methods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allow_headers = ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    supports_credentials = True
 )
 
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_CONNECTION

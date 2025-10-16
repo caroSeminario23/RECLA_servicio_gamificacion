@@ -10,7 +10,6 @@ class CertificadoConEstadoSchema(ma.Schema):
             'nombre', 
             'url_imagen',
             'nivel',
-            'id_usuario',
             'desbloqueado',
             'revisado'
         )
@@ -19,7 +18,6 @@ class CertificadoConEstadoSchema(ma.Schema):
     nombre = fields.String()
     url_imagen = fields.String()
     nivel = fields.Integer()
-    id_usuario = fields.Integer()
     desbloqueado = fields.Boolean()
     revisado = fields.Boolean()
 

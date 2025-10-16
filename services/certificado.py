@@ -40,7 +40,6 @@ def get_certificados_con_estado():
             C.nombre, 
             C.url_imagen, 
             C.nivel,
-            COALESCE(CD.id_usuario, :id_usuario) as id_usuario,
             CASE 
                 WHEN CD.id_certificado IS NOT NULL 
                 THEN true
@@ -49,12 +48,15 @@ def get_certificados_con_estado():
             CASE
                 WHEN CD.revisado IS NULL
                 THEN false
+                WHEN CD.revisado = false
+                THEN false
+                ELSE true
             END as revisado
         FROM certificado as C
         LEFT JOIN certificado_desbloqueado as CD 
             ON C.id_certificado = CD.id_certificado 
             AND CD.id_usuario = :id_usuario
-        ORDER BY C.id_certificado;    
+        ORDER BY C.nivel, C.id_certificado;    
         """
 
         certificados_con_estado = db.session.execute(text(consulta_certificados_con_estado), {'id_usuario': id_usuario})

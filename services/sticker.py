@@ -17,19 +17,27 @@ sticker_routes = Blueprint('sticker_routes', __name__)
 def get_stickers_con_estado():
     try:
         # Validar que existe el JSON y el campo
-        if not request.json or 'id_usuario' not in request.json:
+        field_required = ['id_usuario', 'categoria']
+        if not request.json or not all(field in request.json for field in field_required):
             return make_response(jsonify({
                 'status': 400,
-                'message': 'id_usuario es requerido'
+                'message': 'Faltan campos requeridos'
             }), 400)
             
         id_usuario = request.json.get('id_usuario')
-        
+        categoria = request.json.get('categoria')
+
         # Validar que no sea None o vacío
         if not id_usuario:
             return make_response(jsonify({
                 'status': 400,
                 'message': 'id_usuario no puede estar vacío'
+            }), 400)
+        
+        if not categoria:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'categoria no puede estar vacío'
             }), 400)
         
     except Exception as err:
@@ -44,8 +52,6 @@ def get_stickers_con_estado():
         S.id_sticker,  
         S.url_imagen, 
         S.precio,
-        S.categoria,
-        COALESCE(SD.id_usuario, :id_usuario) as id_usuario,
         CASE 
             WHEN SD.id_sticker IS NOT NULL 
             THEN true
@@ -55,10 +61,11 @@ def get_stickers_con_estado():
     LEFT JOIN sticker_desbloqueado as SD
         ON S.id_sticker = SD.id_sticker 
         AND SD.id_usuario = :id_usuario
+    WHERE S.categoria = :categoria
     ORDER BY S.id_sticker;
     """
 
-    stickers_con_estado = db.session.execute(text(consulta_stickers_con_estado), {'id_usuario': id_usuario})
+    stickers_con_estado = db.session.execute(text(consulta_stickers_con_estado), {'id_usuario': id_usuario, 'categoria': categoria})
 
     resultado_raw = [dict(row._mapping) for row in stickers_con_estado]
     resultado = stickers_con_estado_schema.dump(resultado_raw)

@@ -8,16 +8,12 @@ class StickerDesbloqueadoConEstadoSchema(ma.Schema):
             'id_sticker',
             'url_imagen',
             'precio',
-            'categoria',
-            'id_usuario',
             'desbloqueado'
         )
     
     id_sticker = fields.Integer()
     url_imagen = fields.String()
     precio = fields.Integer()
-    categoria = fields.String()
-    id_usuario = fields.Integer()
     desbloqueado = fields.Boolean()
 
 

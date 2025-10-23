@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 import requests
+import logging
 
 from utils.db import db
 from utils.servicios_externos import VERIFICADOR_PUNTOS_INSIGNIA, AUMENTAR_EXPERIENCIA
@@ -9,6 +10,9 @@ from models.insignia import Insignia
 from models.insignia_desbloqueada import InsigniaDesbloqueada
 from schemas.insignia import insignia_schema_detalle
 from schemas.insignia_desbloqueada import insignias_con_estado_schema
+
+# Configurar el logger
+logger = logging.getLogger(__name__)
 
 insignia_routes = Blueprint('insignia_routes', __name__)
 
@@ -74,7 +78,7 @@ def get_insignias_con_estado():
         return make_response(jsonify(data), 200)
     
     except Exception as err:
-        print(f"Error en get_insignias_con_estado: {err}")  # Para debugging
+        logger.error(f"Error en get_insignias_con_estado: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 400,
             'message': 'Error procesando la solicitud'
@@ -120,7 +124,7 @@ def get_detalle_insignia():
         return make_response(jsonify(data), 200)
 
     except Exception as err:
-        print(f"Error en get_detalle_insignia: {err}")  # Para debugging
+        logger.error(f"Error en get_detalle_insignia: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -214,7 +218,7 @@ def desbloquear_insignia():
         return make_response(jsonify(data), 201)
 
     except Exception as err:
-        print(f"Error en desbloquear_insignia: {err}")  # Para debugging
+        logger.error(f"Error en desbloquear_insignia: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'

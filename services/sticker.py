@@ -2,12 +2,17 @@ from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 import requests
+import logging
 
 from utils.db import db
 from utils.servicios_externos import VERIFICADOR_PUNTOS_STICKER, AUMENTAR_EXPERIENCIA
 from models.sticker import Sticker
 from models.sticker_desbloqueado import StickerDesbloqueado
 from schemas.sticker_desbloqueado import stickers_con_estado_schema
+
+
+# Configurar el logger
+logger = logging.getLogger(__name__)
 
 sticker_routes = Blueprint('sticker_routes', __name__)
 
@@ -41,7 +46,7 @@ def get_stickers_con_estado():
             }), 400)
         
     except Exception as err:
-        print(f"Error en get_stickers_con_estado: {err}")  # Para debugging
+        logger.error(f"Error en get_stickers_con_estado: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -164,7 +169,7 @@ def desbloquear_sticker():
         return make_response(jsonify(data), 201)
     
     except Exception as err:
-        print(f"Error en desbloquear_sticker: {err}")  # Para debugging
+        logger.error(f"Error en desbloquear_sticker: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'

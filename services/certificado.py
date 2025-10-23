@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 import requests
+import logging
 
 from utils.db import db
 from utils.servicios_externos import AUMENTAR_EXPERIENCIA, OBTENER_CORREO_USUARIO
@@ -10,6 +11,10 @@ from models.certificado import Certificado
 from models.certificado_desbloqueado import CertificadoDesbloqueado
 from schemas.certificado import certificado_detalle_schema
 from schemas.certificado_desbloqueado import certificados_con_estado_schema
+
+
+# Configurar el logger
+logger = logging.getLogger(__name__)
 
 certificado_routes = Blueprint('certificado_routes', __name__)
 
@@ -73,7 +78,7 @@ def get_certificados_con_estado():
         return make_response(jsonify(data), 200)
             
     except Exception as err:
-        print(f"Error en get_certificados_con_estado: {err}")  # Para debugging
+        logger.error(f"Error en get_certificados_con_estado: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -119,7 +124,7 @@ def get_detalle_certificado():
         return make_response(jsonify(data), 200)
 
     except Exception as err:  
-        print(f"Error en get_detalle_certificado: {err}")  # Para debugging
+        logger.error(f"Error en get_detalle_certificado: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -175,7 +180,7 @@ def marcar_certificado_revisado():
             db.session.commit()
         except Exception as db_err:
             db.session.rollback()  # Revertir cambios en caso de error
-            print(f"Error de base de datos: {db_err}")
+            logger.error(f"Error de base de datos: {db_err}")
             return make_response(jsonify({
                 'status': 500,
                 'message': 'Error al actualizar la base de datos'
@@ -204,7 +209,7 @@ def marcar_certificado_revisado():
         return make_response(jsonify(data), 200)
 
     except Exception as err:  
-        print(f"Error en marcar_certificado_revisado: {err}")  # Para debugging
+        logger.error(f"Error en marcar_certificado_revisado: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -305,7 +310,7 @@ def enviar_certificado():
         }), 200)
 
     except Exception as err:
-        print(f"Error en enviar_certificado_pdf: {err}")  # Para debugging
+        logger.error(f"Error en enviar_certificado_pdf: {err}")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'

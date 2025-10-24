@@ -39,3 +39,24 @@ class CertificadoCodValidacionSchema(ma.Schema):
 # INSTANCIAS DE SCHEMAS
 certificado_cod_validacion_schema = CertificadoCodValidacionSchema()
 certificados_cod_validacion_schema = CertificadoCodValidacionSchema(many=True)
+
+
+
+class CertificadoDesbloqueadoSchema(ma.Schema):
+    class Meta:
+        fields = (
+            'id_certificado',
+            'nombre',
+            'url_imagen',
+            'nivel',
+        )
+    
+    id_certificado = fields.Integer()
+    nombre = fields.String()
+    url_imagen = fields.String()
+    nivel = fields.Integer()
+
+
+# INSTANCIAS DE SCHEMAS
+certificado_desbloqueado_schema = CertificadoDesbloqueadoSchema()
+certificados_desbloqueados_schema = CertificadoDesbloqueadoSchema(many=True)

@@ -37,3 +37,12 @@ Content-Type: application/json
     "plantilla_url": "https://lyhgavhtpjtnozoabwqk.supabase.co/storage/v1/object/public/recla-images/certificados/certificado1.png"
 }
 ###
+
+# PRESENTACIÓN DE CERTIFICADOS DESBLOQUEADOS POR UN USUARIO
+POST http://127.0.0.1:5001/certificado_routes/get_certificados_desbloqueados_usuario
+Content-Type: application/json
+
+{
+    "id_usuario": 7
+}
+###

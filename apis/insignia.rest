@@ -26,3 +26,13 @@ Content-Type: application/json
     "id_usuario": 7
 }
 ###
+
+# PRESENTACIÓN DE INSIGNIAS DESBLOQUEADAS POR UN USUARIO
+POST http://127.0.0.1:5001/insignia_routes/get_insignias_con_estado_usuario
+Content-Type: application/json
+
+{
+    "id_usuario": 7,
+    "tipo_ptos": 1
+}
+###

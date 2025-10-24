@@ -2,9 +2,10 @@ from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 import requests
-import logging
+import time
 
 from utils.db import db
+from utils.logger import get_logger
 from utils.servicios_externos import VERIFICADOR_PUNTOS_STICKER, AUMENTAR_EXPERIENCIA
 from models.sticker import Sticker
 from models.sticker_desbloqueado import StickerDesbloqueado
@@ -12,7 +13,7 @@ from schemas.sticker_desbloqueado import stickers_con_estado_schema
 
 
 # Configurar el logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 sticker_routes = Blueprint('sticker_routes', __name__)
 
@@ -20,6 +21,7 @@ sticker_routes = Blueprint('sticker_routes', __name__)
 # PRESENTACIÓN DE STICKERS (INDICANDO LOS DESBLOQUEADOS)
 @sticker_routes.route('/get_stickers_con_estado', methods=['POST'])
 def get_stickers_con_estado():
+    inicio_tiempo = time.time()
     try:
         # Validar que existe el JSON y el campo
         field_required = ['id_usuario', 'categoria']
@@ -45,48 +47,55 @@ def get_stickers_con_estado():
                 'message': 'categoria no puede estar vacío'
             }), 400)
         
+        consulta_stickers_con_estado = """
+        SELECT
+            S.id_sticker,  
+            S.url_imagen, 
+            S.precio,
+            CASE 
+                WHEN SD.id_sticker IS NOT NULL 
+                THEN true
+                ELSE false
+            END as desbloqueado
+        FROM sticker as S
+        LEFT JOIN sticker_desbloqueado as SD
+            ON S.id_sticker = SD.id_sticker 
+            AND SD.id_usuario = :id_usuario
+        WHERE S.categoria = :categoria
+        ORDER BY S.id_sticker;
+        """
+
+        stickers_con_estado = db.session.execute(text(consulta_stickers_con_estado), {'id_usuario': id_usuario, 'categoria': categoria})
+
+        resultado_raw = [dict(row._mapping) for row in stickers_con_estado]
+        resultado = stickers_con_estado_schema.dump(resultado_raw)
+
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"get_stickers_con_estado exitoso para usuario {id_usuario}, categoria {categoria}. Tiempo: {tiempo_respuesta:.2f}s")
+
+        data = {
+            "message": "Stickers con estado obtenidos correctamente",
+            "status": 200,
+            "data": resultado
+        }
+
+        return make_response(jsonify(data), 200)
+
     except Exception as err:
-        logger.error(f"Error en get_stickers_con_estado: {err}")  # Para debugging
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en get_stickers_con_estado: {err}. Tiempo: {tiempo_respuesta:.2f}s")
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
         }), 500)
     
-    consulta_stickers_con_estado = """
-    SELECT
-        S.id_sticker,  
-        S.url_imagen, 
-        S.precio,
-        CASE 
-            WHEN SD.id_sticker IS NOT NULL 
-            THEN true
-            ELSE false
-        END as desbloqueado
-    FROM sticker as S
-    LEFT JOIN sticker_desbloqueado as SD
-        ON S.id_sticker = SD.id_sticker 
-        AND SD.id_usuario = :id_usuario
-    WHERE S.categoria = :categoria
-    ORDER BY S.id_sticker;
-    """
-
-    stickers_con_estado = db.session.execute(text(consulta_stickers_con_estado), {'id_usuario': id_usuario, 'categoria': categoria})
-
-    resultado_raw = [dict(row._mapping) for row in stickers_con_estado]
-    resultado = stickers_con_estado_schema.dump(resultado_raw)
-
-    data = {
-        "message": "Stickers con estado obtenidos correctamente",
-        "status": 200,
-        "data": resultado
-    }
-
-    return make_response(jsonify(data), 200)
+    
 
 
 # DESBLOQUEAR STICKER
 @sticker_routes.route('/desbloquear_sticker', methods=['POST'])
 def desbloquear_sticker():
+    inicio_tiempo = time.time()
     try:
         # Validar que existe el JSON y los campos
         required_fields = ['id_sticker', 'id_usuario']
@@ -116,6 +125,8 @@ def desbloquear_sticker():
         
         precio_sticker = sticker.precio
 
+        logger.info(f"Verificando puntos para usuario {id_usuario}, sticker {id_sticker}, precio: {precio_sticker}")
+
         ## Llamar al servicio de usuario para verificar puntos
         servicio_verificador = VERIFICADOR_PUNTOS_STICKER
 
@@ -125,10 +136,14 @@ def desbloquear_sticker():
         })
 
         if respuesta_servicio.status_code != 200:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error verificando puntos en desbloquear_sticker. Usuario: {id_usuario}, Sticker: {id_sticker}. Respuesta: {respuesta_servicio.text}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': respuesta_servicio.status_code,
                 'message': 'Error verificando puntos con el servicio de usuario'
             }), respuesta_servicio.status_code)
+
+        logger.info(f"Guardando sticker desbloqueado en BD para usuario {id_usuario}, sticker {id_sticker}")
 
         # Respuesta exitosa, proceder a desbloquear el sticker
         nuevo_sticker_desbloqueado = StickerDesbloqueado(
@@ -141,11 +156,15 @@ def desbloquear_sticker():
             db.session.commit()
         except IntegrityError as e:
             db.session.rollback()
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error de integridad en desbloquear_sticker (sticker ya desbloqueado). Usuario: {id_usuario}, Sticker: {id_sticker}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 400,
                 'message': 'El sticker ya ha sido desbloqueado por este usuario'
             }), 400)
         
+        logger.info(f"Aumentando experiencia para usuario {id_usuario}")
+
         # Llamar al servicio para que aumente puntos de experiencia al usuario
         servicio_experiencia = AUMENTAR_EXPERIENCIA
 
@@ -155,11 +174,16 @@ def desbloquear_sticker():
         })
 
         if respuesta_experiencia.status_code != 200:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error aumentar experiencia en desbloquear_sticker. Usuario: {id_usuario}. Respuesta: {respuesta_experiencia.text}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': respuesta_experiencia.status_code,
                 'message': 'Error aumentando experiencia con el servicio de usuario'
             }), respuesta_experiencia.status_code)
         
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"desbloquear_sticker exitoso para usuario {id_usuario}, sticker {id_sticker}. Tiempo: {tiempo_respuesta:.2f}s")
+
         # Respuesta exitosa, proceder a responder
         data = {
             'message': 'Sticker desbloqueado exitosamente',
@@ -169,7 +193,8 @@ def desbloquear_sticker():
         return make_response(jsonify(data), 201)
     
     except Exception as err:
-        logger.error(f"Error en desbloquear_sticker: {err}")  # Para debugging
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en desbloquear_sticker: {err}. Tiempo: {tiempo_respuesta:.2f}s")
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'

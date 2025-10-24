@@ -1,20 +1,22 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 import requests
-import logging
+import time
 
 from utils.db import db
+from utils.logger import get_logger
 from utils.servicios_externos import AUMENTAR_EXPERIENCIA, OBTENER_CORREO_USUARIO
 from functions.generar_certificado import generar_certificado_pdf
 from functions.enviar_certificado import enviar_certificado_por_correo
 from models.certificado import Certificado
 from models.certificado_desbloqueado import CertificadoDesbloqueado
 from schemas.certificado import certificado_detalle_schema
-from schemas.certificado_desbloqueado import certificados_con_estado_schema
+from schemas.certificado_desbloqueado import (certificados_con_estado_schema, 
+                                              certificados_desbloqueados_schema)
 
 
 # Configurar el logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 certificado_routes = Blueprint('certificado_routes', __name__)
 
@@ -22,6 +24,7 @@ certificado_routes = Blueprint('certificado_routes', __name__)
 # PRESENTACIÓN DE CERTIFICADOS (INDICANDO LOS DESBLOQUEADOS)
 @certificado_routes.route('/get_certificados_con_estado', methods=['POST'])
 def get_certificados_con_estado():
+    inicio_tiempo = time.time()
     try:
         # Validar que existe el JSON y el campo
         if not request.json or 'id_usuario' not in request.json:
@@ -69,6 +72,9 @@ def get_certificados_con_estado():
         resultado_raw = [dict(row._mapping) for row in certificados_con_estado]
         resultado = certificados_con_estado_schema.dump(resultado_raw)
 
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"get_certificados_con_estado exitoso para usuario {id_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
+
         data = {
             'message': 'Certificados obtenidos exitosamente',
             "status": 200,
@@ -78,7 +84,8 @@ def get_certificados_con_estado():
         return make_response(jsonify(data), 200)
             
     except Exception as err:
-        logger.error(f"Error en get_certificados_con_estado: {err}")  # Para debugging
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en get_certificados_con_estado: {err}. Tiempo: {tiempo_respuesta:.2f}s")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -88,6 +95,7 @@ def get_certificados_con_estado():
 # CONSULTAR DETALLE DE UN CERTIFICADO
 @certificado_routes.route('/get_detalle_certificado', methods=['POST'])
 def get_detalle_certificado():
+    inicio_tiempo = time.time()
     try:
         # Validar que existe el JSON y los campos
         if not request.json or 'id_certificado' not in request.json:
@@ -115,6 +123,10 @@ def get_detalle_certificado():
 
         resultado = certificado_detalle_schema.dump(certificado)
 
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"get_detalle_certificado exitoso para certificado {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")
+
+
         data = {
             "message": "Detalle del certificado obtenido correctamente",
             "status": 200,
@@ -124,7 +136,8 @@ def get_detalle_certificado():
         return make_response(jsonify(data), 200)
 
     except Exception as err:  
-        logger.error(f"Error en get_detalle_certificado: {err}")  # Para debugging
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en get_detalle_certificado: {err}. Tiempo: {tiempo_respuesta:.2f}s")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -134,6 +147,7 @@ def get_detalle_certificado():
 # MARCAR CERTIFICADO COMO REVISADO
 @certificado_routes.route('/marcar_certificado_revisado', methods=['POST'])
 def marcar_certificado_revisado():
+    inicio_tiempo = time.time()
     try:
         # Validar que existe el JSON y los campos
         required_fields = ['id_certificado', 'id_usuario']
@@ -156,6 +170,8 @@ def marcar_certificado_revisado():
         certificado = Certificado.query.filter_by(id_certificado=id_certificado).first()
 
         if not certificado:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Certificado no encontrado: {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Certificado no encontrado'
@@ -168,6 +184,8 @@ def marcar_certificado_revisado():
 
         # Verificar si ya está marcado como revisado
         if certificado_desbloqueado.revisado:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.info(f"Certificado ya revisado para usuario {id_usuario}, certificado {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 200,
                 'message': 'El certificado ya estaba marcado como revisado'
@@ -180,7 +198,8 @@ def marcar_certificado_revisado():
             db.session.commit()
         except Exception as db_err:
             db.session.rollback()  # Revertir cambios en caso de error
-            logger.error(f"Error de base de datos: {db_err}")
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error de base de datos en marcar_certificado_revisado: {db_err}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 500,
                 'message': 'Error al actualizar la base de datos'
@@ -195,11 +214,16 @@ def marcar_certificado_revisado():
         })
 
         if respuesta_experiencia.status_code != 200:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error aumentar experiencia en marcar_certificado_revisado: {respuesta_experiencia.text}. Usuario: {id_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': respuesta_experiencia.status_code,
                 'message': 'Error aumentando experiencia con el servicio de usuario'
             }), respuesta_experiencia.status_code)
         
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"marcar_certificado_revisado exitoso para usuario {id_usuario} y certificado {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")
+
         # Respuesta exitosa, proceder a responder
         data = {
             "message": "Certificado marcado como revisado correctamente",
@@ -209,7 +233,8 @@ def marcar_certificado_revisado():
         return make_response(jsonify(data), 200)
 
     except Exception as err:  
-        logger.error(f"Error en marcar_certificado_revisado: {err}")  # Para debugging
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en marcar_certificado_revisado: {err}. Tiempo: {tiempo_respuesta:.2f}s")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -219,6 +244,7 @@ def marcar_certificado_revisado():
 # ENVIAR CERTIFICADO POR CORREO
 @certificado_routes.route('/enviar_certificado', methods=['POST'])
 def enviar_certificado():
+    inicio_tiempo = time.time()
     try:
         # Validar que existe el JSON y los campos
         required_fields = ['id_certificado', 'id_usuario', 'username', 'plantilla_url']
@@ -247,6 +273,8 @@ def enviar_certificado():
         ).first()
 
         if not certificado_desbloqueado:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error en enviar_certificado: Certificado desbloqueado no encontrado para el usuario {id_usuario}, certificado {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Certificado desbloqueado no encontrado para el usuario'
@@ -255,6 +283,7 @@ def enviar_certificado():
         certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().plantilla
         
         if not certificado_desbloqueado.pdf_url:
+            logger.info(f"Generando PDF para usuario {id_usuario}, certificado {id_certificado}")
             generar_certificado_pdf(
                 username=username,
                 fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
@@ -271,6 +300,8 @@ def enviar_certificado():
         ).first().pdf_url
 
         if not pdf_url_certificado:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"PDF del certificado no encontrado para usuario {id_usuario}, certificado {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'PDF del certificado no encontrado'
@@ -284,6 +315,8 @@ def enviar_certificado():
         })
 
         if respuesta_usuario.status_code != 200:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Error obteniendo correo del usuario {id_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': respuesta_usuario.status_code,
                 'message': 'Error obteniendo dirección de correo del usuario'
@@ -292,16 +325,22 @@ def enviar_certificado():
         email_usuario = respuesta_usuario.json().get('data', {}).get('email')
 
         if not email_usuario:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Correo del usuario no encontrado. Usuario: {id_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Correo del usuario no encontrado'
             }), 404)
 
+        logger.info(f"Enviando certificado a {email_usuario} para usuario {id_usuario}")
         enviar_certificado_por_correo(
             username=username,
             destinatario=email_usuario,
             pdf_url=pdf_url_certificado
         )
+
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"enviar_certificado exitoso para usuario {id_usuario}, email: {email_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
 
         # Añadir después de enviar el correo:
         return make_response(jsonify({
@@ -310,9 +349,68 @@ def enviar_certificado():
         }), 200)
 
     except Exception as err:
-        logger.error(f"Error en enviar_certificado_pdf: {err}")  # Para debugging
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en enviar_certificado_pdf: {err}. Tiempo: {tiempo_respuesta:.2f}s")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
         }), 500)
-   
+
+
+# PRESENTACIÓN DE CERTIFICADOS DE UN USUARIO (SOLO LAS DESBLOQUEADAS)
+@certificado_routes.route('/get_certificados_desbloqueados_usuario', methods=['POST'])
+def get_certificados_desbloqueados_usuario():
+    inicio_tiempo = time.time()
+    try:
+        # Validar que existe el JSON y el campo
+        if not request.json or 'id_usuario' not in request.json:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'id_usuario es requerido'
+            }), 400)
+            
+        id_usuario = request.json.get('id_usuario')
+        
+        # Validar que no sea None o vacío
+        if not id_usuario:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'id_usuario no puede estar vacío'
+            }), 400)
+        
+        consulta_certificados_desbloqueadas = """
+        SELECT 
+            C.id_certificado, 
+            C.nombre, 
+            C.url_imagen, 
+            C.nivel
+        FROM certificado as C
+        RIGHT JOIN certificado_desbloqueado as CD 
+            ON C.id_certificado = CD.id_certificado 
+            AND CD.id_usuario = :id_usuario
+        ORDER BY C.nivel, C.id_certificado;   
+        """
+
+        certificados_desbloqueados = db.session.execute(text(consulta_certificados_desbloqueadas), {'id_usuario': id_usuario})
+
+        resultado_raw = [dict(row._mapping) for row in certificados_desbloqueados]
+        resultado = certificados_desbloqueados_schema.dump(resultado_raw)
+
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.info(f"get_certificados_desbloqueados_usuario exitoso para usuario {id_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
+
+        data = {
+            'message': 'Certificados obtenidos exitosamente',
+            "status": 200,
+            "data": resultado
+        }
+
+        return make_response(jsonify(data), 200)
+            
+    except Exception as err:
+        tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en get_certificados_desbloqueados_usuario: {err}. Tiempo: {tiempo_respuesta:.2f}s")
+        return make_response(jsonify({
+            'status': 500,
+            'message': 'Error procesando la solicitud'
+        }), 500)

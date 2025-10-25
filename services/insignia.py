@@ -54,6 +54,7 @@ def get_insignias_con_estado():
             I.nombre, 
             I.url_imagen, 
             I.nivel,
+            I.ptos_necesarios,
             CASE 
                 WHEN ID.id_insignia IS NOT NULL 
                 THEN true

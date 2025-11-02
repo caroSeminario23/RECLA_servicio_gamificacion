@@ -21,7 +21,7 @@ POST http://127.0.0.1:5001/certificado_routes/marcar_certificado_revisado
 Content-Type: application/json
 
 {
-    "id_certificado": 8,
+    "id_certificado": 7,
     "id_usuario": 7
 }
 ###

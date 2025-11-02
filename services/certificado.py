@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
-import requests
-import time
+import requests, time
+from concurrent.futures import ThreadPoolExecutor
 
 from utils.db import db
 from utils.logger import get_logger
@@ -48,11 +48,7 @@ def get_certificados_con_estado():
             C.nombre, 
             C.url_imagen, 
             C.nivel,
-            CASE 
-                WHEN CD.id_certificado IS NOT NULL 
-                THEN true
-                ELSE false
-            END as desbloqueado,
+            CD.desbloqueado,
             CASE
                 WHEN CD.revisado IS NULL
                 THEN false
@@ -144,6 +140,18 @@ def get_detalle_certificado():
         }), 500)
     
 
+# AUMENTAR EXPERIENCIA AL USUARIO (POR DESBLOQUEO DE CERTIFICADO)
+def _aumentar_experiencia_certificado(id_usuario):
+    """Ejecuta en background sin bloquear la respuesta"""
+    try:
+        respuesta = requests.post(AUMENTAR_EXPERIENCIA, 
+            json={'id_usuario': id_usuario, 'motivo': 2},
+            timeout=3)
+        if respuesta.status_code != 200:
+            logger.error(f"Error aumentando experiencia: {respuesta.text}")
+    except Exception as e:
+        logger.error(f"Error en certificado background task: {e}")
+
 # MARCAR CERTIFICADO COMO REVISADO
 @certificado_routes.route('/marcar_certificado_revisado', methods=['POST'])
 def marcar_certificado_revisado():
@@ -177,9 +185,18 @@ def marcar_certificado_revisado():
                 'message': 'Certificado no encontrado'
             }), 404)
         
+        '''
         certificado_desbloqueado = CertificadoDesbloqueado.query.filter_by(
             id_certificado=id_certificado,
             id_usuario=id_usuario
+        ).first()
+        '''
+
+        certificado_desbloqueado = db.session.execute(text("""
+            SELECT revisado
+            FROM certificado_desbloqueado
+            WHERE id_certificado = :id_certificado AND id_usuario = :id_usuario
+        """), {'id_certificado': id_certificado, 'id_usuario': id_usuario}
         ).first()
 
         # Verificar si ya está marcado como revisado
@@ -191,11 +208,19 @@ def marcar_certificado_revisado():
                 'message': 'El certificado ya estaba marcado como revisado'
             }), 200)
 
-        # Actualizar y guardar
-        certificado_desbloqueado.revisado = True
-
         try:
+            # Actualizar y guardar
+            query_update = text(f"""
+                UPDATE certificado_desbloqueado
+                SET revisado = TRUE
+                WHERE id_certificado=id_certificado AND id_usuario=id_usuario
+            """)
+            db.session.execute(query_update, {
+                'id_certificado': id_certificado,
+                'id_usuario': id_usuario
+            })
             db.session.commit()
+            #certificado_desbloqueado.revisado = True
         except Exception as db_err:
             db.session.rollback()  # Revertir cambios en caso de error
             tiempo_respuesta = time.time() - inicio_tiempo
@@ -205,21 +230,11 @@ def marcar_certificado_revisado():
                 'message': 'Error al actualizar la base de datos'
             }), 500)
         
-        # Llamar al servicio para que aumente puntos de experiencia al usuario
-        servicio_experiencia = AUMENTAR_EXPERIENCIA
-
-        respuesta_experiencia = requests.post(servicio_experiencia, json={
-            'id_usuario': id_usuario,
-            'motivo': 2  # Motivo 2: Desbloqueo de certificado
-        })
-
-        if respuesta_experiencia.status_code != 200:
-            tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error aumentar experiencia en marcar_certificado_revisado: {respuesta_experiencia.text}. Usuario: {id_usuario}. Tiempo: {tiempo_respuesta:.2f}s")
-            return make_response(jsonify({
-                'status': respuesta_experiencia.status_code,
-                'message': 'Error aumentando experiencia con el servicio de usuario'
-            }), respuesta_experiencia.status_code)
+        logger.info(f"Aumentando experiencia para usuario {id_usuario}")
+        
+        # ⭐ Ejecutar experiencia en background (NO bloquea)
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.submit(_aumentar_experiencia_certificado, id_usuario)
         
         tiempo_respuesta = time.time() - inicio_tiempo
         logger.info(f"marcar_certificado_revisado exitoso para usuario {id_usuario} y certificado {id_certificado}. Tiempo: {tiempo_respuesta:.2f}s")

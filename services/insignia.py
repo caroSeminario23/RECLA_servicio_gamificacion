@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-import requests
-import time
+import requests, time
 from concurrent.futures import ThreadPoolExecutor
 
 from utils.db import db
@@ -148,7 +147,7 @@ def get_detalle_insignia():
     
 
 # AUMENTAR EXPERIENCIA AL USUARIO (POR DESBLOQUEO DE INSIGNIA)
-def _aumentar_experiencia_background(id_usuario):
+def _aumentar_experiencia_insignia(id_usuario):
     """Ejecuta en background sin bloquear la respuesta"""
     try:
         respuesta = requests.post(AUMENTAR_EXPERIENCIA, 
@@ -157,7 +156,7 @@ def _aumentar_experiencia_background(id_usuario):
         if respuesta.status_code != 200:
             logger.error(f"Error aumentando experiencia: {respuesta.text}")
     except Exception as e:
-        logger.error(f"Error en background task: {e}")
+        logger.error(f"Error en insignia background task: {e}")
 
 # DESBLOQUEAR INSIGNIA (CANJEAR)
 @insignia_routes.route('/desbloquear_insignia', methods=['POST'])
@@ -183,8 +182,6 @@ def desbloquear_insignia():
             }), 400)
         
         # Verificar que el usuario tenga el medio para pagarlo
-        #insignia = Insignia.query.filter_by(id_insignia=id_insignia).first()
-
         insignia = db.session.execute(text("""
             SELECT tipo_ptos, ptos_necesarios 
             FROM insignia 
@@ -248,25 +245,8 @@ def desbloquear_insignia():
         
         # ⭐ Ejecutar experiencia en background (NO bloquea)
         executor = ThreadPoolExecutor(max_workers=1)
-        executor.submit(_aumentar_experiencia_background, id_usuario)
+        executor.submit(_aumentar_experiencia_insignia, id_usuario)
 
-        # Llamar al servicio para que aumente puntos de experiencia al usuario
-        #servicio_experiencia = AUMENTAR_EXPERIENCIA
-
-        '''
-        respuesta_experiencia = requests.post(servicio_experiencia, json={
-            'id_usuario': id_usuario,
-            'motivo': 1  # Motivo 1: Desbloqueo de insignia
-        })
-
-        if respuesta_experiencia.status_code != 200:
-            tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error aumentar experiencia en desbloquear_insignia. Usuario: {id_usuario}. Respuesta: {respuesta_experiencia.text}. Tiempo: {tiempo_respuesta:.2f}s")
-            return make_response(jsonify({
-                'status': respuesta_experiencia.status_code,
-                'message': 'Error aumentando experiencia con el servicio de usuario'
-            }), respuesta_experiencia.status_code)
-        '''
         tiempo_respuesta = time.time() - inicio_tiempo
         logger.info(f"desbloquear_insignia exitoso para usuario {id_usuario}, insignia {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
 

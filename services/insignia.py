@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 import requests
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from utils.db import db
 from utils.logger import get_logger
@@ -146,6 +147,18 @@ def get_detalle_insignia():
         }), 500)
     
 
+# AUMENTAR EXPERIENCIA AL USUARIO (POR DESBLOQUEO DE INSIGNIA)
+def _aumentar_experiencia_background(id_usuario):
+    """Ejecuta en background sin bloquear la respuesta"""
+    try:
+        respuesta = requests.post(AUMENTAR_EXPERIENCIA, 
+            json={'id_usuario': id_usuario, 'motivo': 1},
+            timeout=3)
+        if respuesta.status_code != 200:
+            logger.error(f"Error aumentando experiencia: {respuesta.text}")
+    except Exception as e:
+        logger.error(f"Error en background task: {e}")
+
 # DESBLOQUEAR INSIGNIA (CANJEAR)
 @insignia_routes.route('/desbloquear_insignia', methods=['POST'])
 def desbloquear_insignia():
@@ -170,7 +183,14 @@ def desbloquear_insignia():
             }), 400)
         
         # Verificar que el usuario tenga el medio para pagarlo
-        insignia = Insignia.query.filter_by(id_insignia=id_insignia).first()
+        #insignia = Insignia.query.filter_by(id_insignia=id_insignia).first()
+
+        insignia = db.session.execute(text("""
+            SELECT tipo_ptos, ptos_necesarios 
+            FROM insignia 
+            WHERE id_insignia = :id_insignia
+        """), {'id_insignia': id_insignia}).first()
+
         if not insignia:
             tiempo_respuesta = time.time() - inicio_tiempo
             logger.error(f"Insignia no encontrada para desbloquear: {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
@@ -187,11 +207,15 @@ def desbloquear_insignia():
         ## Llamar al servicio de usuario para verificar puntos (si tiene suficientes los resta)
         servicio_verificador = VERIFICADOR_PUNTOS_INSIGNIA
         
-        respuesta_servicio = requests.post(servicio_verificador, json={
-            'id_usuario': id_usuario,
-            'tipo_insignia': tipo_insignia,
-            'precio_insignia': precio_insignia
-        })
+        respuesta_servicio = requests.post(
+            servicio_verificador, 
+            json={
+                'id_usuario': id_usuario,
+                'tipo_insignia': tipo_insignia,
+                'precio_insignia': precio_insignia
+            },
+            timeout=2
+        )
 
         if respuesta_servicio.status_code != 200:
             tiempo_respuesta = time.time() - inicio_tiempo
@@ -222,9 +246,14 @@ def desbloquear_insignia():
         
         logger.info(f"Aumentando experiencia para usuario {id_usuario}")
         
-        # Llamar al servicio para que aumente puntos de experiencia al usuario
-        servicio_experiencia = AUMENTAR_EXPERIENCIA
+        # ⭐ Ejecutar experiencia en background (NO bloquea)
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.submit(_aumentar_experiencia_background, id_usuario)
 
+        # Llamar al servicio para que aumente puntos de experiencia al usuario
+        #servicio_experiencia = AUMENTAR_EXPERIENCIA
+
+        '''
         respuesta_experiencia = requests.post(servicio_experiencia, json={
             'id_usuario': id_usuario,
             'motivo': 1  # Motivo 1: Desbloqueo de insignia
@@ -237,7 +266,7 @@ def desbloquear_insignia():
                 'status': respuesta_experiencia.status_code,
                 'message': 'Error aumentando experiencia con el servicio de usuario'
             }), respuesta_experiencia.status_code)
-        
+        '''
         tiempo_respuesta = time.time() - inicio_tiempo
         logger.info(f"desbloquear_insignia exitoso para usuario {id_usuario}, insignia {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
 

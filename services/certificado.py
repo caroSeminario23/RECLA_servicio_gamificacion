@@ -48,15 +48,26 @@ def get_certificados_con_estado():
             C.nombre, 
             C.url_imagen, 
             C.nivel,
-            CD.desbloqueado,
+            I1.nombre as nombre_insignia_1,
+            I2.nombre as nombre_insignia_2,
+            I3.nombre as nombre_insignia_3,
             CASE
-                WHEN CD.revisado IS NULL
-                THEN false
-                WHEN CD.revisado = false
-                THEN false
+                WHEN CD.desbloqueado IS NULL THEN false
+                WHEN CD.desbloqueado = false THEN false
+                ELSE true
+            END as desbloqueado,
+            CASE
+                WHEN CD.revisado IS NULL THEN false
+                WHEN CD.revisado = false THEN false
                 ELSE true
             END as revisado
         FROM certificado as C
+        LEFT JOIN insignia as I1 
+            ON C.requisito_1 = I1.id_insignia
+        LEFT JOIN insignia as I2 
+            ON C.requisito_2 = I2.id_insignia
+        LEFT JOIN insignia as I3 
+            ON C.requisito_3 = I3.id_insignia
         LEFT JOIN certificado_desbloqueado as CD 
             ON C.id_certificado = CD.id_certificado 
             AND CD.id_usuario = :id_usuario
@@ -242,10 +253,10 @@ def marcar_certificado_revisado():
         # Respuesta exitosa, proceder a responder
         data = {
             "message": "Certificado marcado como revisado correctamente",
-            "status": 200
+            "status": 201
         }
 
-        return make_response(jsonify(data), 200)
+        return make_response(jsonify(data), 201)
 
     except Exception as err:  
         tiempo_respuesta = time.time() - inicio_tiempo
@@ -403,6 +414,7 @@ def get_certificados_desbloqueados_usuario():
         RIGHT JOIN certificado_desbloqueado as CD 
             ON C.id_certificado = CD.id_certificado 
             AND CD.id_usuario = :id_usuario
+        WHERE CD.desbloqueado = TRUE
         ORDER BY C.nivel, C.id_certificado;   
         """
 

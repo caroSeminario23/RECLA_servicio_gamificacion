@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify, make_response
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-import requests
-import time
+import requests, time
+from concurrent.futures import ThreadPoolExecutor
 
 from utils.db import db
 from utils.logger import get_logger
@@ -90,7 +90,17 @@ def get_stickers_con_estado():
         }), 500)
     
     
-
+# AUMENTAR EXPERIENCIA AL USUARIO (POR DESBLOQUEO DE STICKER)
+def _aumentar_experiencia_sticker(id_usuario):
+    """Ejecuta en background sin bloquear la respuesta"""
+    try:
+        respuesta = requests.post(AUMENTAR_EXPERIENCIA, 
+            json={'id_usuario': id_usuario, 'motivo': 3},
+            timeout=3)
+        if respuesta.status_code != 200:
+            logger.error(f"Error aumentando experiencia: {respuesta.text}")
+    except Exception as e:
+        logger.error(f"Error en sticker background task: {e}")
 
 # DESBLOQUEAR STICKER
 @sticker_routes.route('/desbloquear_sticker', methods=['POST'])
@@ -116,8 +126,16 @@ def desbloquear_sticker():
             }), 400)
         
         # Verificar que el usuario tenga el medio para pagarlo
-        sticker = Sticker.query.filter_by(id_sticker=id_sticker).first()
+        #sticker = Sticker.query.filter_by(id_sticker=id_sticker).first()
+        sticker = db.session.execute(text("""
+            SELECT precio
+            FROM sticker
+            WHERE id_sticker = :id_sticker
+        """), {'id_sticker': id_sticker}).first()
+
         if not sticker:
+            tiempo_respuesta = time.time() - inicio_tiempo
+            logger.error(f"Sticker no encontrado para desbloquar. Tiempo: {tiempo_respuesta:.2f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Sticker no encontrado'
@@ -130,10 +148,14 @@ def desbloquear_sticker():
         ## Llamar al servicio de usuario para verificar puntos
         servicio_verificador = VERIFICADOR_PUNTOS_STICKER
 
-        respuesta_servicio = requests.post(servicio_verificador, json={
-            'id_usuario': id_usuario,
-            'precio_sticker': precio_sticker
-        })
+        respuesta_servicio = requests.post(
+            servicio_verificador, 
+            json={
+                'id_usuario': id_usuario,
+                'precio_sticker': precio_sticker
+            },
+            timeout=2
+        )
 
         if respuesta_servicio.status_code != 200:
             tiempo_respuesta = time.time() - inicio_tiempo
@@ -154,6 +176,7 @@ def desbloquear_sticker():
         try:
             db.session.add(nuevo_sticker_desbloqueado)
             db.session.commit()
+            logger.info(f"Sticker guardado en BD para usuario {id_usuario}, sticker {id_sticker}")
         except IntegrityError as e:
             db.session.rollback()
             tiempo_respuesta = time.time() - inicio_tiempo
@@ -165,21 +188,9 @@ def desbloquear_sticker():
         
         logger.info(f"Aumentando experiencia para usuario {id_usuario}")
 
-        # Llamar al servicio para que aumente puntos de experiencia al usuario
-        servicio_experiencia = AUMENTAR_EXPERIENCIA
-
-        respuesta_experiencia = requests.post(servicio_experiencia, json={
-            'id_usuario': id_usuario,
-            'motivo': 3  # Motivo 3: Desbloqueo de sticker
-        })
-
-        if respuesta_experiencia.status_code != 200:
-            tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error aumentar experiencia en desbloquear_sticker. Usuario: {id_usuario}. Respuesta: {respuesta_experiencia.text}. Tiempo: {tiempo_respuesta:.2f}s")
-            return make_response(jsonify({
-                'status': respuesta_experiencia.status_code,
-                'message': 'Error aumentando experiencia con el servicio de usuario'
-            }), respuesta_experiencia.status_code)
+        # ⭐ Ejecutar experiencia en background (NO bloquea)
+        executor = ThreadPoolExecutor(max_workers=1)
+        executor.submit(_aumentar_experiencia_sticker, id_usuario)
         
         tiempo_respuesta = time.time() - inicio_tiempo
         logger.info(f"desbloquear_sticker exitoso para usuario {id_usuario}, sticker {id_sticker}. Tiempo: {tiempo_respuesta:.2f}s")

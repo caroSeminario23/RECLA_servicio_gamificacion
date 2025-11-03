@@ -11,7 +11,10 @@ class CertificadoConEstadoSchema(ma.Schema):
             'url_imagen',
             'nivel',
             'desbloqueado',
-            'revisado'
+            'revisado',
+            'nombre_insignia_1',
+            'nombre_insignia_2',
+            'nombre_insignia_3',
         )
     
     id_certificado = fields.Integer()
@@ -20,6 +23,9 @@ class CertificadoConEstadoSchema(ma.Schema):
     nivel = fields.Integer()
     desbloqueado = fields.Boolean()
     revisado = fields.Boolean()
+    nombre_insignia_1 = fields.String()
+    nombre_insignia_2 = fields.String()
+    nombre_insignia_3 = fields.String()
 
 
 # INSTANCIAS DE SCHEMAS

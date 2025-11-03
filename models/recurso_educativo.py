@@ -4,7 +4,7 @@ class RecursoEducativo(db.Model):
     __tablename__ = 'recurso_educativo'
 
     # Características
-    id_recurso = db.Column(
+    id_rec_edu = db.Column(
         db.Integer,
         primary_key=True,
         autoincrement=True,
@@ -12,27 +12,27 @@ class RecursoEducativo(db.Model):
     )
 
     titulo = db.Column(
-        db.String(45),
+        db.String(50),
         unique=True,
         nullable=True
     )
 
-    autor = db.Column(
-        db.String(20),
-        nullable=True
-    )
-
-    fuente_url = db.Column(
+    portada_url = db.Column(
         db.Text,
         nullable=True
     )
 
-    tipo = db.Column(
+    referencia = db.Column(
+        db.String(30),
+        nullable=True
+    )
+
+    tipo_contenido = db.Column(
         db.Integer,
         nullable=True
     )
 
-    img_portada = db.Column(
+    contenido_url = db.Column(
         db.Text,
         nullable=True
     )
@@ -41,12 +41,12 @@ class RecursoEducativo(db.Model):
     # Objeto
     def __init__(self,
                  titulo,
-                 autor,
-                 fuente_url,
-                 tipo,
-                 img_portada):
+                 portada_url,
+                 referencia,
+                 tipo_contenido,
+                 contenido_url):
         self.titulo = titulo
-        self.autor = autor
-        self.fuente_url = fuente_url
-        self.tipo = tipo
-        self.img_portada = img_portada
+        self.portada_url = portada_url
+        self.referencia = referencia
+        self.tipo_contenido = tipo_contenido
+        self.contenido_url = contenido_url

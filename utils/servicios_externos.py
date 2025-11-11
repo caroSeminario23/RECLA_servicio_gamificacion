@@ -7,3 +7,5 @@ VERIFICADOR_PUNTOS_STICKER = f"{URL_BASE}/estatus_routes/verificar_puntos_sticke
 AUMENTAR_EXPERIENCIA = f"{URL_BASE}/estatus_routes/aumentar_experiencia"
 
 OBTENER_CORREO_USUARIO = f"{URL_BASE}/usuario_routes/obtener_email_usuario"
+
+AUMENTAR_CONTADOR_RECURSO_EDUCATIVO = f"{URL_BASE}/estatus_routes/aumentar_contador_recurso_educativo"

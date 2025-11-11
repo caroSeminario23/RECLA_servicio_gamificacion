@@ -1,0 +1,17 @@
+# PRESENTACIÓN DE RECURSOS EDUCATIVOS (INDICANDO LOS RESUELTOS)
+POST http://127.0.0.1:5001/recurso_educativo_routes/portadas_recursos_educativos
+Content-Type: application/json
+
+{
+    "id_usuario": 7
+}
+###
+
+# PRESENTACIÓN DE CONTENIDO DE UN RECURSO EDUCATIVO
+POST http://127.0.0.1:5001/recurso_educativo_routes/detalle_recurso_educativo
+Content-Type: application/json
+
+{
+    "id_rec_edu": 1
+}
+###

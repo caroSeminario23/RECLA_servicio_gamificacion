@@ -4,58 +4,62 @@ from marshmallow import fields
 from models.recurso_educativo import RecursoEducativo
 
 # SCHEMA PARA RECURSO EDUCATIVO GENERAL
-class RecursoEducativoGeneralSchema(ma.Schema):
+class RecursoEducativoPortadaSchema(ma.Schema):
     class Meta:
         fields = (
             'id_rec_edu',
             'titulo',
             'portada_url',
-            'referencia',
             'tipo_contenido',
-            'contenido_url',
-            'puntaje_ultimo'
+            'resuelto',
+            'porcentaje_acierto'
         )
     
     id_rec_edu = fields.Integer()
     titulo = fields.String()
     portada_url = fields.String()
-    referencia = fields.String()
     tipo_contenido = fields.Integer()
-    contenido_url = fields.String()
-    puntaje_ultimo = fields.Integer()
+    resuelto = fields.Boolean()
+    porcentaje_acierto = fields.Float()
 
 
 # INSTANCIAS DE SCHEMAS
-recurso_educativo_schema = RecursoEducativoGeneralSchema()
-recursos_educativos_schema = RecursoEducativoGeneralSchema(many=True)
+recurso_educativo_portada_schema = RecursoEducativoPortadaSchema()
+recursos_educativos_portada_schema = RecursoEducativoPortadaSchema(many=True)
+
+
+# CONTENIDO DE RECURSO EDUCATIVO
+class RecursoEducativoContenidoSchema(ma.Schema):
+    class Meta:
+        fields = (
+            'id_rec_edu',
+            'referencia',
+            'contenido_url',
+        )
+
+    id_rec_edu = fields.Integer()
+    referencia = fields.String()
+    contenido_url = fields.String()
+
+# INSTANCIAS DE SCHEMAS
+recurso_educativo_contenido_schema = RecursoEducativoContenidoSchema()
+recursos_educativos_contenido_schema = RecursoEducativoContenidoSchema(many=True)
+
 
 
 # SCHEMA PARA CUESTIONARIO
 class RecursoEducativoCuestionarioSchema(ma.Schema):
-    class Meta:
-        fields = tuple(
-            f'{i}_{field}'
-            for i in range(1, 5)
-            for field in [
-                'orden',
-                'pregunta',
-                'rpta_correcta',
-                'rpta_incorrecta1',
-                'rpta_incorrecta2',
-                'rpta_incorrecta3',
-            ]
-        )
+    pass
     
     # Generar campos dinámicamente
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for i in range(1, 5):
-            self.fields[f'{i}_orden'] = fields.Integer()
-            self.fields[f'{i}_pregunta'] = fields.String()
-            self.fields[f'{i}_rpta_correcta'] = fields.String()
-            self.fields[f'{i}_rpta_incorrecta1'] = fields.String()
-            self.fields[f'{i}_rpta_incorrecta2'] = fields.String()
-            self.fields[f'{i}_rpta_incorrecta3'] = fields.String()
+for i in range(1, 5):
+    setattr(RecursoEducativoCuestionarioSchema, f'RE_{i}_orden', fields.Integer())
+    setattr(RecursoEducativoCuestionarioSchema, f'RE_{i}_pregunta', fields.String())
+    setattr(RecursoEducativoCuestionarioSchema, f'RE_{i}_rpta_correcta', fields.String())
+    setattr(RecursoEducativoCuestionarioSchema, f'RE_{i}_rpta_incorrecta1', fields.String())
+    setattr(RecursoEducativoCuestionarioSchema, f'RE_{i}_rpta_incorrecta2', fields.String())
+    setattr(RecursoEducativoCuestionarioSchema, f'RE_{i}_rpta_incorrecta3', fields.String())
+
 
 # INSTANCIAS DE SCHEMAS
 recurso_educativo_cuestionario_schema = RecursoEducativoCuestionarioSchema()

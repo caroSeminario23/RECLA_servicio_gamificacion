@@ -8,4 +8,6 @@ AUMENTAR_EXPERIENCIA = f"{URL_BASE}/estatus_routes/aumentar_experiencia"
 
 OBTENER_CORREO_USUARIO = f"{URL_BASE}/usuario_routes/obtener_email_usuario"
 
-AUMENTAR_CONTADOR_RECURSO_EDUCATIVO = f"{URL_BASE}/estatus_routes/aumentar_contador_recurso_educativo"
+AUMENTAR_EXPERIENCIA_RECURSO_EDUCATIVO = f"{URL_BASE}/estatus_routes/aumentar_experiencia_recursos_educativos"
+
+AUMENTAR_CONTADORES = f"{URL_BASE}/estatus_routes/aumentar_contador"

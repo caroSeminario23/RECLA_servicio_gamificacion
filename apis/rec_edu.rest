@@ -15,3 +15,30 @@ Content-Type: application/json
     "id_rec_edu": 1
 }
 ###
+
+
+# PRESENTACIÓN DE PREGUNTAS DE CUESTIONARIO DE RECURSO EDUCATIVO
+POST http://127.0.0.1:5001/recurso_educativo_routes/cargar_cuestionario_recurso_educativo
+Content-Type: application/json
+
+{
+    "id_rec_edu": 1
+}
+###
+
+
+# REGISTRO DE RESPUESTA A CUESTIONARIO DE RECURSO EDUCATIVO
+POST http://127.0.0.1:5001/recurso_educativo_routes/guardar_respuestas_cuestionario
+Content-Type: application/json
+
+{
+    "id_rec_edu": 1,
+    "id_usuario": 7,
+    "respuestas": {
+        "1": "rpta_correcta",
+        "2": "rpta_incorrecta1",
+        "3": "rpta_correcta",
+        "4": "rpta_incorrecta2"
+    }
+}
+###

@@ -1,19 +1,23 @@
 from utils.db import db
 
-class RERespuelto(db.Model):
+class REResuelto(db.Model):
     __tablename__ = 're_resuelto'
 
     # Características
+    id_re_resuelto = db.Column(
+        db.Integer,
+        primary_key=True,
+        autoincrement=True
+    )
+
     id_rec_edu = db.Column(
         db.Integer,
         db.ForeignKey('recurso_educativo.id_rec_edu'),
-        primary_key=True,
         nullable=True
     )
 
     id_usuario = db.Column(
         db.Integer,
-        primary_key=True,
         nullable=True
     )
 

@@ -7,7 +7,6 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.db import db
 from utils.logger import get_logger
 from utils.servicios_externos import VERIFICADOR_PUNTOS_STICKER, AUMENTAR_EXPERIENCIA
-from models.sticker import Sticker
 from models.sticker_desbloqueado import StickerDesbloqueado
 from schemas.sticker_desbloqueado import stickers_con_estado_schema
 
@@ -71,7 +70,7 @@ def get_stickers_con_estado():
         resultado = stickers_con_estado_schema.dump(resultado_raw)
 
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.info(f"get_stickers_con_estado exitoso para usuario {id_usuario}, categoria {categoria}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.info(f"get_stickers_con_estado exitoso para usuario {id_usuario}, categoria {categoria}. Tiempo: {tiempo_respuesta:.3f}s")
 
         data = {
             "message": "Stickers con estado obtenidos correctamente",
@@ -83,7 +82,7 @@ def get_stickers_con_estado():
 
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error en get_stickers_con_estado: {err}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.error(f"Error en get_stickers_con_estado: {err}. Tiempo: {tiempo_respuesta:.3f}s")
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -135,7 +134,7 @@ def desbloquear_sticker():
 
         if not sticker:
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Sticker no encontrado para desbloquar. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Sticker no encontrado para desbloquar. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Sticker no encontrado'
@@ -159,7 +158,7 @@ def desbloquear_sticker():
 
         if respuesta_servicio.status_code != 200:
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error verificando puntos en desbloquear_sticker. Usuario: {id_usuario}, Sticker: {id_sticker}. Respuesta: {respuesta_servicio.text}. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Error verificando puntos en desbloquear_sticker. Usuario: {id_usuario}, Sticker: {id_sticker}. Respuesta: {respuesta_servicio.text}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': respuesta_servicio.status_code,
                 'message': 'Error verificando puntos con el servicio de usuario'
@@ -180,7 +179,7 @@ def desbloquear_sticker():
         except IntegrityError as e:
             db.session.rollback()
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error de integridad en desbloquear_sticker (sticker ya desbloqueado). Usuario: {id_usuario}, Sticker: {id_sticker}. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Error de integridad en desbloquear_sticker (sticker ya desbloqueado). Usuario: {id_usuario}, Sticker: {id_sticker}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': 400,
                 'message': 'El sticker ya ha sido desbloqueado por este usuario'
@@ -193,7 +192,7 @@ def desbloquear_sticker():
         executor.submit(_aumentar_experiencia_sticker, id_usuario)
         
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.info(f"desbloquear_sticker exitoso para usuario {id_usuario}, sticker {id_sticker}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.info(f"desbloquear_sticker exitoso para usuario {id_usuario}, sticker {id_sticker}. Tiempo: {tiempo_respuesta:.3f}s")
 
         # Respuesta exitosa, proceder a responder
         data = {
@@ -205,7 +204,7 @@ def desbloquear_sticker():
     
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error en desbloquear_sticker: {err}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.error(f"Error en desbloquear_sticker: {err}. Tiempo: {tiempo_respuesta:.3f}s")
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'

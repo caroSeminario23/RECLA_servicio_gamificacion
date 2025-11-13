@@ -74,7 +74,7 @@ def get_insignias_con_estado():
         resultado = insignias_con_estado_schema.dump(resultado_raw)
 
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.info(f"get_insignias_con_estado exitoso para usuario {id_usuario}, tipo_ptos {tipo_ptos}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.info(f"get_insignias_con_estado exitoso para usuario {id_usuario}, tipo_ptos {tipo_ptos}. Tiempo: {tiempo_respuesta:.3f}s")
 
         data = {
             "message": "Insignias obtenidas correctamente",
@@ -86,7 +86,7 @@ def get_insignias_con_estado():
     
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error en get_insignias_con_estado: {err}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.error(f"Error en get_insignias_con_estado: {err}. Tiempo: {tiempo_respuesta:.3f}s")
         return make_response(jsonify({
             'status': 400,
             'message': 'Error procesando la solicitud'
@@ -118,7 +118,7 @@ def get_detalle_insignia():
 
         if not insignia:
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Insignia no encontrada: {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Insignia no encontrada: {id_insignia}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Insignia no encontrada'
@@ -127,7 +127,7 @@ def get_detalle_insignia():
         resultado = insignia_schema_detalle.dump(insignia)
 
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.info(f"get_detalle_insignia exitoso para insignia {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.info(f"get_detalle_insignia exitoso para insignia {id_insignia}. Tiempo: {tiempo_respuesta:.3f}s")
 
         data = {
             "message": "Detalle de insignia obtenido correctamente",
@@ -139,7 +139,7 @@ def get_detalle_insignia():
 
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error en get_detalle_insignia: {err}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.error(f"Error en get_detalle_insignia: {err}. Tiempo: {tiempo_respuesta:.3f}s")
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -190,7 +190,7 @@ def desbloquear_insignia():
 
         if not insignia:
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Insignia no encontrada para desbloquear: {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Insignia no encontrada para desbloquear: {id_insignia}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': 404,
                 'message': 'Insignia no encontrada'
@@ -216,7 +216,7 @@ def desbloquear_insignia():
 
         if respuesta_servicio.status_code != 200:
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error verificando puntos en desbloquear_insignia. Usuario: {id_usuario}, Insignia: {id_insignia}. Respuesta: {respuesta_servicio.text}. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Error verificando puntos en desbloquear_insignia. Usuario: {id_usuario}, Insignia: {id_insignia}. Respuesta: {respuesta_servicio.text}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': respuesta_servicio.status_code,
                 'message': 'Error verificando puntos con el servicio de usuario'
@@ -235,7 +235,7 @@ def desbloquear_insignia():
         except IntegrityError as e:
             db.session.rollback()
             tiempo_respuesta = time.time() - inicio_tiempo
-            logger.error(f"Error de integridad en desbloquear_insignia (ya existe o datos inválidos). Usuario: {id_usuario}, Insignia: {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
+            logger.error(f"Error de integridad en desbloquear_insignia (ya existe o datos inválidos). Usuario: {id_usuario}, Insignia: {id_insignia}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
                 'status': 400,
                 'message': 'La insignia ya está desbloqueada para este usuario o los datos son inválidos'
@@ -248,7 +248,7 @@ def desbloquear_insignia():
         executor.submit(_aumentar_experiencia_insignia, id_usuario)
 
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.info(f"desbloquear_insignia exitoso para usuario {id_usuario}, insignia {id_insignia}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.info(f"desbloquear_insignia exitoso para usuario {id_usuario}, insignia {id_insignia}. Tiempo: {tiempo_respuesta:.3f}s")
 
         # Respuesta exitosa, proceder a responder
         data = {
@@ -260,7 +260,7 @@ def desbloquear_insignia():
 
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error en desbloquear_insignia: {err}. Tiempo: {tiempo_respuesta:.2f}s")  # Para debugging
+        logger.error(f"Error en desbloquear_insignia: {err}. Tiempo: {tiempo_respuesta:.3f}s")  # Para debugging
         return make_response(jsonify({
             'status': 500,
             'message': 'Error procesando la solicitud'
@@ -317,7 +317,7 @@ def get_insignias_con_estado_usuario():
         resultado = insignias_desbloqueadas_schema.dump(resultado_raw)
 
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.info(f"get_insignias_con_estado_usuario exitoso para usuario {id_usuario}, tipo_ptos {tipo_ptos}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.info(f"get_insignias_con_estado_usuario exitoso para usuario {id_usuario}, tipo_ptos {tipo_ptos}. Tiempo: {tiempo_respuesta:.3f}s")
 
         data = {
             "message": "Insignias obtenidas correctamente",
@@ -329,7 +329,7 @@ def get_insignias_con_estado_usuario():
     
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error en get_insignias_con_estado_usuario: {err}. Tiempo: {tiempo_respuesta:.2f}s")
+        logger.error(f"Error en get_insignias_con_estado_usuario: {err}. Tiempo: {tiempo_respuesta:.3f}s")
         return make_response(jsonify({
             'status': 400,
             'message': 'Error procesando la solicitud'

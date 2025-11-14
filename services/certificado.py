@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from utils.db import db
 from utils.logger import get_logger
 from utils.servicios_externos import AUMENTAR_EXPERIENCIA, OBTENER_CORREO_USUARIO
-from functions.generar_certificado import generar_certificado_pdf
+from functions.generar_certificado import generar_certificado_webp
 from functions.enviar_certificado import enviar_certificado_por_correo
 from models.certificado import Certificado
 from models.certificado_desbloqueado import CertificadoDesbloqueado
@@ -310,7 +310,7 @@ def enviar_certificado():
         
         if not certificado_desbloqueado.pdf_url:
             logger.info(f"Generando PDF para usuario {id_usuario}, certificado {id_certificado}")
-            generar_certificado_pdf(
+            generar_certificado_webp(
                 username=username,
                 fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
                 plantilla_url=plantilla_url,

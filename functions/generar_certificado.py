@@ -8,7 +8,7 @@ from utils.generar_codigo import generar_codigo_certificado
 from functions.codigos_validacion import obtener_codigos_validacion
 from models.certificado_desbloqueado import CertificadoDesbloqueado
 
-def generar_certificado_pdf(username, fecha_desbloqueo, plantilla_url, coordenadas, id_usuario, id_certificado):
+def generar_certificado_webp(username, fecha_desbloqueo, plantilla_url, coordenadas, id_usuario, id_certificado):
     # Extraer la plantilla desde Supabase
     imagen_plantilla = requests.get(plantilla_url)
     if imagen_plantilla.status_code != 200:
@@ -21,7 +21,8 @@ def generar_certificado_pdf(username, fecha_desbloqueo, plantilla_url, coordenad
     draw = ImageDraw.Draw(imagen_editable)
 
     # Cargar fuente
-    font = ImageFont.truetype("arial.ttf", size=24)
+    font_path = os.path.join(os.path.dirname(__file__), "../fonts/ShareTechMono-Regular.ttf")
+    font = ImageFont.truetype(font_path, size=24)
 
     # Coordenadas de datos dinámicos
     username_x = coordenadas.get("ecoaprendiz", {}).get("x", 100)
@@ -47,43 +48,42 @@ def generar_certificado_pdf(username, fecha_desbloqueo, plantilla_url, coordenad
     draw.text((fec_desbloqueo_x, fec_desbloqueo_y), f"Fecha de Desbloqueo: {fecha_desbloqueo}", fill="black", font=font)
     draw.text((codigo_x, codigo_y), f"Código: {codigo}", fill="black", font=font)
     
-    # Guardar la imagen modificada como pdf
-    pdf_output = f"certificado_{username}_{codigo}.pdf"
-    imagen_editable.save(pdf_output, "PDF", resolution=100.0)
+    # Guardar la imagen modificada como webp
+    webp_output = f"certificado_{username}_{codigo}.webp"
+    imagen_editable.save(webp_output, "WEBP", resolution=100.0)
 
-    # Subir el PDF a Supabase
+    # Subir el WEBP a Supabase
     try:
-        certificado_subido_url = subir_pdf_a_supabase(pdf_output)
+        certificado_subido_url = subir_webp_a_supabase(webp_output)
     except Exception as e:
-        print(f"Error al subir PDF: {e}")
+        print(f"Error al subir WEBP: {e}")
         return None
 
-    # Guardar URL del PDF en la base de datos
+    # Guardar URL del WEBP en la base de datos
     almacenar_certificado_en_bd(id_usuario, id_certificado, certificado_subido_url, codigo)
 
-    # Eliminar el archivo PDF local después de subirlo
-    os.remove(pdf_output)
+    # Eliminar el archivo WEBP local después de subirlo
+    os.remove(webp_output)
     
 
-def subir_pdf_a_supabase(pdf_archivo):
-    with open(pdf_archivo, "rb") as pdf_file:
+def subir_webp_a_supabase(webp_archivo):
+    with open(webp_archivo, "rb") as webp_file:
         bucket_name = "recla-images"
-        carpeta_supabase = f"certificados_generados/{pdf_archivo}"
+        carpeta_supabase = f"certificados_generados/{webp_archivo}"
 
         llamado_carpeta = supabase.storage.from_(bucket_name)
 
-        llamado_carpeta.upload(carpeta_supabase, pdf_file, {'cacheControl': '3600', 'upsert': 'true'})
+        llamado_carpeta.upload(carpeta_supabase, webp_file, {'cacheControl': '3600', 'upsert': 'true'})
+    webp_url = llamado_carpeta.get_public_url(f"certificados_generados/{webp_archivo}")
+    print(f"WEBP subido a Supabase: {webp_url}")
 
-    pdf_url = llamado_carpeta.get_public_url(f"certificados_generados/{pdf_archivo}")
-    print(f"PDF subido a Supabase: {pdf_url}")
-
-    return pdf_url
+    return webp_url
 
 
-def almacenar_certificado_en_bd(id_usuario, id_certificado, pdf_url, codigo):
+def almacenar_certificado_en_bd(id_usuario, id_certificado, webp_url, codigo):
     certificado_desbloqueado = CertificadoDesbloqueado.query.filter_by(id_usuario=id_usuario, id_certificado=id_certificado).first()
 
     if certificado_desbloqueado:
-        certificado_desbloqueado.pdf_url = pdf_url
+        certificado_desbloqueado.webp_url = webp_url
         certificado_desbloqueado.cod_validacion = codigo
         db.session.commit()

@@ -226,7 +226,7 @@ def aumentar_experiencia(id_usuario, puntos_experiencia):
 # AUMENTAR CONTADOR DE RECURSO EDUCATIVO (en paralelo)
 def aumentar_contador(id_rec_edu, id_usuario):
     try:
-        requests.get(
+        requests.post(
             AUMENTAR_CONTADORES,
             json={'id_usuario': id_usuario, 'motivo': 3},
             timeout=5

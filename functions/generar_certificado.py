@@ -83,7 +83,7 @@ def subir_webp_a_supabase(webp_archivo):
 def almacenar_certificado_en_bd(id_usuario, id_certificado, webp_url, codigo):
     certificado_desbloqueado = CertificadoDesbloqueado.query.filter_by(id_usuario=id_usuario, id_certificado=id_certificado).first()
 
-    if certificado_desbloqueado:
-        certificado_desbloqueado.webp_url = webp_url
+    if certificado_desbloqueado != None:
+        certificado_desbloqueado.pdf_url = webp_url
         certificado_desbloqueado.cod_validacion = codigo
         db.session.commit()

@@ -13,7 +13,7 @@ def enviar_certificado_por_correo(username, destinatario, certificado_url):
                 <br>
                 <img src="{certificado_url}" alt="Certificado" style="max-width: 600px; height: auto;">
                 <br>
-                <p>Recuerda que puedes descargarlo desde haciendo click <a href="{certificado_url}">aquí</a>.</p>
+                <p>Recuerda que puedes descargarlo haciendo click <a href="{certificado_url}">aquí</a>.</p>
             </body>
         </html>
         """

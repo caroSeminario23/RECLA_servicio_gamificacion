@@ -309,7 +309,7 @@ def enviar_certificado():
         certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().plantilla
         
         if not certificado_desbloqueado.pdf_url:
-            logger.info(f"Generando PDF para usuario {id_usuario}, certificado {id_certificado}")
+            logger.info(f"Generando imagen para usuario {id_usuario}, certificado {id_certificado}")
             generar_certificado_webp(
                 username=username,
                 fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
@@ -362,7 +362,7 @@ def enviar_certificado():
         enviar_certificado_por_correo(
             username=username,
             destinatario=email_usuario,
-            pdf_url=pdf_url_certificado
+            certificado_url=pdf_url_certificado
         )
 
         tiempo_respuesta = time.time() - inicio_tiempo

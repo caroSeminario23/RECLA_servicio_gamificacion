@@ -89,3 +89,18 @@ class RecursoEducativoRespuestaSchema(ma.SQLAlchemyAutoSchema):
 # INSTANCIAS DE SCHEMAS
 recurso_educativo_respuesta_schema = RecursoEducativoRespuestaSchema()
 recursos_educativos_respuesta_schema = RecursoEducativoRespuestaSchema(many=True)
+
+
+class ResultadoRecursoEducativoSchema(ma.Schema):
+    class Meta:
+        fields = (
+            'respuestas_correctas',
+            'puntos_experiencia'
+        )
+    
+    respuestas_correctas = fields.Integer()
+    puntos_experiencia = fields.Integer()
+
+# INSTANCIAS DE SCHEMAS
+resultado_recurso_educativo_schema = ResultadoRecursoEducativoSchema()
+resultados_recursos_educativos_schema = ResultadoRecursoEducativoSchema(many=True)

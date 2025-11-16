@@ -11,7 +11,8 @@ from utils.servicios_externos import (AUMENTAR_CONTADORES,
                                       AUMENTAR_EXPERIENCIA_RECURSO_EDUCATIVO)
 from models.recurso_educativo import RecursoEducativo
 from schemas.recurso_educativo import (recursos_educativos_portada_schema,
-                                       recurso_educativo_contenido_schema)
+                                       recurso_educativo_contenido_schema,
+                                       resultado_recurso_educativo_schema)
 from schemas.cuestionario import cuestionarios_schema
 from models.re_resuelto import REResuelto
 
@@ -340,25 +341,16 @@ def guardar_respuestas_cuestionario():
             executor.submit(aumentar_experiencia, id_usuario, puntos_experiencia)
             executor.submit(aumentar_contador, id_rec_edu, id_usuario)
 
+        resultado = resultado_recurso_educativo_schema.dump({
+            'respuestas_correctas': rptas_correctas,
+            'puntos_experiencia': puntos_experiencia
+        })
+
         return make_response(jsonify({
             'status': 201,
             'message': 'Respuestas guardadas correctamente',
-            'data': {
-                'respuestas_correctas': rptas_correctas,
-                'puntos_experiencia': puntos_experiencia
-            }
+            'data': resultado
         }), 201)
-    
-    
-    except IntegrityError as integrity_err:
-        db.session.rollback()
-        tiempo_respuesta = time.time() - inicio_tiempo
-        logger.error(f"Error de integridad al guardar respuestas para usuario {id_usuario}, recurso {id_rec_edu}: {str(integrity_err)} - Tiempo: {tiempo_respuesta:.3f}s")
-        return make_response(jsonify({
-            'status': 409,
-            'message': 'El usuario ya resolvió este recurso educativo',
-            'error': 'Duplicate entry'
-        }), 409)
     
     except Exception as err:
         db.session.rollback()

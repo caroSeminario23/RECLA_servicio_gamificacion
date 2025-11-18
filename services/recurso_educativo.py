@@ -56,10 +56,14 @@ def presentar_portadas_recursos_educativos():
                 WHEN RR.id_rec_edu IS NOT NULL THEN True
                 ELSE False
             END as resuelto,
-            ROUND((COUNT(CASE 
-                WHEN RR.rpta1 = 'rpta_correcta'
-                THEN 1 
-            END) * 100.0 / 4), 2) as porcentaje_acierto
+            ROUND((
+                (
+                    (CASE WHEN RR.rpta1 = 'rpta_correcta' THEN 1 ELSE 0 END) +
+                    (CASE WHEN RR.rpta2 = 'rpta_correcta' THEN 1 ELSE 0 END) +
+                    (CASE WHEN RR.rpta3 = 'rpta_correcta' THEN 1 ELSE 0 END) +
+                    (CASE WHEN RR.rpta4 = 'rpta_correcta' THEN 1 ELSE 0 END)
+                ) * 100.0 / 4
+            ), 2) as porcentaje_acierto
         FROM RECURSO_EDUCATIVO RE
         LEFT JOIN RE_RESUELTO RR ON RE.id_rec_edu = RR.id_rec_edu
             AND RR.id_usuario = :id_usuario
@@ -73,7 +77,7 @@ def presentar_portadas_recursos_educativos():
         LEFT JOIN CUESTIONARIO C2 ON RE.id_rec_edu = C2.id_rec_edu AND C2.orden = 2
         LEFT JOIN CUESTIONARIO C3 ON RE.id_rec_edu = C3.id_rec_edu AND C3.orden = 3
         LEFT JOIN CUESTIONARIO C4 ON RE.id_rec_edu = C4.id_rec_edu AND C4.orden = 4
-        GROUP BY RE.id_rec_edu, RE.titulo, RE.portada_url, RE.referencia, RE.tipo_contenido, RE.contenido_url, RR.id_rec_edu;
+        GROUP BY RE.id_rec_edu, RE.titulo, RE.portada_url, RE.referencia, RE.tipo_contenido, RE.contenido_url, RR.id_rec_edu, RR.rpta1, RR.rpta2, RR.rpta3, RR.rpta4;
         """
 
         portadas_rec_edus = db.session.execute(text(consulta_rec_educativos), {'id_usuario': id_usuario}).mappings().fetchall()
@@ -345,6 +349,8 @@ def guardar_respuestas_cuestionario():
             'respuestas_correctas': rptas_correctas,
             'puntos_experiencia': puntos_experiencia
         })
+
+        logger.info(f"Puntos de experiencia calculados: {puntos_experiencia} para usuario {id_usuario} - Respuestas correctas: {rptas_correctas} - Tiempo: {tiempo_respuesta:.3f}s")
 
         return make_response(jsonify({
             'status': 201,

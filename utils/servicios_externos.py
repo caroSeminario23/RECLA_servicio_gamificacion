@@ -11,3 +11,5 @@ OBTENER_CORREO_USUARIO = f"{URL_BASE}/usuario_routes/obtener_email_usuario"
 AUMENTAR_EXPERIENCIA_RECURSO_EDUCATIVO = f"{URL_BASE}/estatus_routes/aumentar_experiencia_recursos_educativos"
 
 AUMENTAR_CONTADORES = f"{URL_BASE}/estatus_routes/aumentar_contador"
+
+VERIFICADOR_ACTIVIDAD_DIARIA = f"{URL_BASE}/estatus_routes/registrar_actividad"

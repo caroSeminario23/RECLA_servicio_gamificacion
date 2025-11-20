@@ -267,6 +267,22 @@ def marcar_certificado_revisado():
         }), 500)
 
 
+# OBTENER CORREO DEL USUARIO
+def _obtener_correo_usuario(id_usuario):
+    """Ejecuta en background sin bloquear la respuesta"""
+    try:
+        respuesta = requests.post(OBTENER_CORREO_USUARIO, 
+            json={'id_usuario': id_usuario},
+            timeout=3)
+        if respuesta.status_code != 200:
+            logger.error(f"Error obteniendo correo: {respuesta.text}")
+            return None
+        return respuesta
+    except Exception as e:
+        logger.error(f"Error en obtener correo background task: {e}")
+        return None
+
+
 # ENVIAR CERTIFICADO POR CORREO
 @certificado_routes.route('/enviar_certificado', methods=['POST'])
 def enviar_certificado():
@@ -306,10 +322,11 @@ def enviar_certificado():
                 'message': 'Certificado desbloqueado no encontrado para el usuario'
             }), 404)
         
-        certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().plantilla
-        
+        # Generar certificado si no existe
         if not certificado_desbloqueado.pdf_url:
             logger.info(f"Generando imagen para usuario {id_usuario}, certificado {id_certificado}")
+            certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().plantilla
+            
             generar_certificado_webp(
                 username=username,
                 fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
@@ -318,6 +335,9 @@ def enviar_certificado():
                 id_usuario=id_usuario,
                 id_certificado=id_certificado
             )
+        else:
+            logger.info(f"Certificado ya generado para usuario {id_usuario}, certificado {id_certificado}")
+        
         
         # Obtener el URL del PDF desde la base de datos
         pdf_url_certificado = CertificadoDesbloqueado.query.filter_by(
@@ -333,21 +353,19 @@ def enviar_certificado():
                 'message': 'PDF del certificado no encontrado'
             }), 404)
         
-        # Llamar al servicio para obtener la dirección de correo del usuario
-        servicio_usuario = OBTENER_CORREO_USUARIO
+        # Obtener correo del usuario en background
+        executor = ThreadPoolExecutor(max_workers=1)
+        future_respuesta = executor.submit(_obtener_correo_usuario, id_usuario)
+        respuesta_usuario = future_respuesta.result(timeout=5)
 
-        respuesta_usuario = requests.post(servicio_usuario, json={
-            'id_usuario': id_usuario
-        })
-
-        if respuesta_usuario.status_code != 200:
+        if not respuesta_usuario:
             tiempo_respuesta = time.time() - inicio_tiempo
             logger.error(f"Error obteniendo correo del usuario {id_usuario}. Tiempo: {tiempo_respuesta:.3f}s")
             return make_response(jsonify({
-                'status': respuesta_usuario.status_code,
+                'status': 500,
                 'message': 'Error obteniendo dirección de correo del usuario'
-            }), respuesta_usuario.status_code)
-
+            }), 500)
+        
         email_usuario = respuesta_usuario.json().get('data', {}).get('email')
 
         if not email_usuario:
@@ -381,6 +399,8 @@ def enviar_certificado():
             'status': 500,
             'message': 'Error procesando la solicitud'
         }), 500)
+
+
 
 
 # PRESENTACIÓN DE CERTIFICADOS DE UN USUARIO (SOLO LAS DESBLOQUEADAS)

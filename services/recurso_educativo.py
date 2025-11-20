@@ -8,7 +8,7 @@ from models.cuestionario import Cuestionario
 from utils.db import db
 from utils.logger import get_logger
 from utils.servicios_externos import (AUMENTAR_CONTADORES,
-                                      AUMENTAR_EXPERIENCIA_RECURSO_EDUCATIVO)
+                                      AUMENTAR_EXPERIENCIA_RECURSO_EDUCATIVO, VERIFICADOR_ACTIVIDAD_DIARIA)
 from models.recurso_educativo import RecursoEducativo
 from schemas.recurso_educativo import (recursos_educativos_portada_schema,
                                        recurso_educativo_contenido_schema,
@@ -217,7 +217,7 @@ def cargar_cuestionario_recurso_educativo():
 
 
 # AUMENTAR PUNTOS DE EXPERIENCIA (en paralelo)
-def aumentar_experiencia(id_usuario, puntos_experiencia):
+def _aumentar_experiencia(id_usuario, puntos_experiencia):
     try:
         requests.post(
             AUMENTAR_EXPERIENCIA_RECURSO_EDUCATIVO,
@@ -229,7 +229,7 @@ def aumentar_experiencia(id_usuario, puntos_experiencia):
         logger.error(f"Error al aumentar experiencia: {str(ext_err)}")
 
 # AUMENTAR CONTADOR DE RECURSO EDUCATIVO (en paralelo)
-def aumentar_contador(id_rec_edu, id_usuario):
+def _aumentar_contador(id_rec_edu, id_usuario):
     try:
         requests.post(
             AUMENTAR_CONTADORES,
@@ -239,6 +239,19 @@ def aumentar_contador(id_rec_edu, id_usuario):
         logger.info(f"Contador aumentado para recurso {id_rec_edu}")
     except Exception as ext_err:
         logger.error(f"Error al aumentar contador: {str(ext_err)}")
+
+
+# REGISTRAR ACTIVIDAD DIARIA EN BACKGROUND
+def _registrar_actividad_diaria(id_usuario):
+    """Ejecuta en background sin bloquear la respuesta"""
+    try:
+        respuesta = requests.post(VERIFICADOR_ACTIVIDAD_DIARIA, 
+            json={'id_usuario': id_usuario},
+            timeout=3)
+        if respuesta.status_code != 201:
+            logger.error(f"Error al registrar actividad diaria: {respuesta.text}")
+    except Exception as e:
+        logger.error(f"Error en registrar actividad diaria background task: {e}")
 
 
 # GUARDAR RESPUESTAS DEL CUESTIONARIO DE UN RECURSO EDUCATIVO
@@ -342,8 +355,9 @@ def guardar_respuestas_cuestionario():
 
         # AUMENTAR PUNTOS DE EXPERIENCIA
         with ThreadPoolExecutor(max_workers=2) as executor:
-            executor.submit(aumentar_experiencia, id_usuario, puntos_experiencia)
-            executor.submit(aumentar_contador, id_rec_edu, id_usuario)
+            executor.submit(_aumentar_experiencia, id_usuario, puntos_experiencia)
+            executor.submit(_aumentar_contador, id_rec_edu, id_usuario)
+            executor.submit(_registrar_actividad_diaria, id_usuario)
 
         resultado = resultado_recurso_educativo_schema.dump({
             'respuestas_correctas': rptas_correctas,

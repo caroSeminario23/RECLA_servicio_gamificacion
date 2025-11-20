@@ -22,7 +22,7 @@ def generar_certificado_webp(username, fecha_desbloqueo, plantilla_url, coordena
 
     # Cargar fuente
     font_path = os.path.join(os.path.dirname(__file__), "../fonts/ShareTechMono-Regular.ttf")
-    font = ImageFont.truetype(font_path, size=24)
+    font = ImageFont.truetype(font_path, size=12)
 
     # Coordenadas de datos dinámicos
     username_x = coordenadas.get("ecoaprendiz", {}).get("x", 100)

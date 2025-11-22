@@ -1,4 +1,4 @@
-URL_BASE = "http://localhost:5000"
+URL_BASE = "https://recla-servicio-usuarios.onrender.com"; # "http://localhost:5000"
 
 VERIFICADOR_PUNTOS_INSIGNIA = f"{URL_BASE}/estatus_routes/verificar_puntos_insignia"
 

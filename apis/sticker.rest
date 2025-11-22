@@ -12,7 +12,7 @@ POST http://127.0.0.1:5001/sticker_routes/desbloquear_sticker
 Content-Type: application/json
 
 {
-    "id_sticker": 6,
-    "id_usuario": 7
+    "id_sticker": 1,
+    "id_usuario": 13
 }
 ###

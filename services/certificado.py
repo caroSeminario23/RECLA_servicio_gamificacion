@@ -326,10 +326,13 @@ def enviar_certificado():
         if not certificado_desbloqueado.pdf_url:
             logger.info(f"Generando imagen para usuario {id_usuario}, certificado {id_certificado}")
             certificado_coordenadas = Certificado.query.filter_by(id_certificado=id_certificado).first().plantilla
+
+            # Extraer fecha y hora de desbloqueo (DD/MM/AAAA HH:MM)
+            fecha_desbloqueo = certificado_desbloqueado.fec_desbloqueo.strftime("%d/%m/%Y %H:%M")
             
             generar_certificado_webp(
                 username=username,
-                fecha_desbloqueo=certificado_desbloqueado.fec_desbloqueo,
+                fecha_desbloqueo=fecha_desbloqueo,
                 plantilla_url=plantilla_url,
                 coordenadas=certificado_coordenadas,
                 id_usuario=id_usuario,

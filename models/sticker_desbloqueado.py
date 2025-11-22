@@ -1,4 +1,5 @@
 from utils.db import db
+from models.sticker import Sticker
 
 class StickerDesbloqueado(db.Model):
     __tablename__ = 'sticker_desbloqueado'
@@ -15,6 +16,13 @@ class StickerDesbloqueado(db.Model):
         db.ForeignKey('sticker.id_sticker'),
         primary_key=True,
         nullable=True
+    )
+
+
+    # Relaciones
+    sticker = db.relationship(
+        'Sticker',
+        backref='stickerdesbloqueado_sticker'
     )
 
 

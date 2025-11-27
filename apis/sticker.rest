@@ -3,7 +3,8 @@ POST http://127.0.0.1:5001/sticker_routes/get_stickers_con_estado
 Content-Type: application/json
 
 {
-    "id_usuario": 1
+    "id_usuario": 1,
+    "categoria": 1
 }
 ###
 

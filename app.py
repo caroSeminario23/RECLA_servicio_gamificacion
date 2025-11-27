@@ -35,8 +35,7 @@ app.register_blueprint(recurso_educativo_routes, url_prefix='/recurso_educativo_
 with app.app_context():
     db.create_all()
 
-'''
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
     app.run(host='0.0.0.0', debug=True, port=port)
-'''

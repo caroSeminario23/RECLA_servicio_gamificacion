@@ -132,7 +132,6 @@ def get_stickers_con_estado():
 
         # 3. Serialización eficiente
         resultado_raw = [dict(row._mapping) for row in stickers_con_estado]
-        #resultado = stickers_con_estado_schema.dump(resultado_raw)
 
         tiempo_respuesta = time.perf_counter() - inicio_tiempo
         logger.info(f"get_stickers_con_estado exitoso para usuario {id_usuario}, categoria {categoria}. Tiempo: {tiempo_respuesta:.3f}s")

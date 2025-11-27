@@ -18,6 +18,7 @@ sticker_routes = Blueprint('sticker_routes', __name__)
 
 
 # PRESENTACIÓN DE STICKERS (INDICANDO LOS DESBLOQUEADOS)
+'''
 @sticker_routes.route('/get_stickers_con_estado', methods=['POST'])
 def get_stickers_con_estado():
     inicio_tiempo = time.time()
@@ -82,6 +83,66 @@ def get_stickers_con_estado():
 
     except Exception as err:
         tiempo_respuesta = time.time() - inicio_tiempo
+        logger.error(f"Error en get_stickers_con_estado: {err}. Tiempo: {tiempo_respuesta:.3f}s")
+        return make_response(jsonify({
+            'status': 500,
+            'message': 'Error procesando la solicitud'
+        }), 500)
+'''
+
+# VERSION OPTIMIZADA DE PRESENTACIÓN DE STICKERS (INDICANDO LOS DESBLOQUEADOS)
+@sticker_routes.route('/get_stickers_con_estado', methods=['POST'])
+def get_stickers_con_estado():
+    inicio_tiempo = time.perf_counter()
+    try:
+        data_in = request.json
+        # 1. Validación rápida (Fail Fast)
+        if not data_in:
+             return make_response(jsonify({'status': 400, 'message': 'JSON requerido'}), 400)
+        
+        id_usuario = data_in.get('id_usuario')
+        categoria = data_in.get('categoria')
+
+        if not id_usuario or not categoria:
+            return make_response(jsonify({'status': 400, 'message': 'Faltan id_usuario o categoria'}), 400)
+        
+        # 2. Consulta optimizada
+        consulta_stickers_con_estado = """
+        SELECT
+            S.id_sticker,  
+            S.url_imagen, 
+            S.precio,
+            CASE 
+                WHEN SD.id_sticker IS NOT NULL 
+                THEN true
+                ELSE false
+            END as desbloqueado
+        FROM sticker as S
+        LEFT JOIN sticker_desbloqueado as SD
+            ON S.id_sticker = SD.id_sticker 
+            AND SD.id_usuario = :id_usuario
+        WHERE S.categoria = :categoria
+        ORDER BY S.id_sticker ASC;
+        """
+
+        stickers_con_estado = db.session.execute(text(consulta_stickers_con_estado), {'id_usuario': id_usuario, 'categoria': categoria})
+
+        # 3. Serialización eficiente
+        resultado_raw = [dict(row._mapping) for row in stickers_con_estado]
+
+        tiempo_respuesta = time.perf_counter() - inicio_tiempo
+        logger.info(f"get_stickers_con_estado exitoso para usuario {id_usuario}, categoria {categoria}. Tiempo: {tiempo_respuesta:.3f}s")
+
+        data = {
+            "message": "Stickers con estado obtenidos correctamente",
+            "status": 200,
+            "data": resultado_raw
+        }
+
+        return make_response(jsonify(data), 200)
+
+    except Exception as err:
+        tiempo_respuesta = time.perf_counter() - inicio_tiempo
         logger.error(f"Error en get_stickers_con_estado: {err}. Tiempo: {tiempo_respuesta:.3f}s")
         return make_response(jsonify({
             'status': 500,

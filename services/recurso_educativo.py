@@ -150,14 +150,14 @@ def presentar_portadas_recursos_educativos():
                 WHEN UI.id_rec_edu IS NOT NULL THEN True
                 ELSE False
             END as resuelto,
-            ROUND((
+            CAST(ROUND((
                 (
                     (CASE WHEN UI.rpta1 = 'rpta_correcta' THEN 1 ELSE 0 END) +
                     (CASE WHEN UI.rpta2 = 'rpta_correcta' THEN 1 ELSE 0 END) +
                     (CASE WHEN UI.rpta3 = 'rpta_correcta' THEN 1 ELSE 0 END) +
                     (CASE WHEN UI.rpta4 = 'rpta_correcta' THEN 1 ELSE 0 END)
                 ) * 100.0 / 4
-            ), 2) as porcentaje_acierto
+            ), 2) AS FLOAT) as porcentaje_acierto
         FROM RECURSO_EDUCATIVO RE
         LEFT JOIN UltimoIntento UI 
             ON RE.id_rec_edu = UI.id_rec_edu 

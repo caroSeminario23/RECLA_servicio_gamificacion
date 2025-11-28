@@ -22,9 +22,11 @@ logger = get_logger(__name__)
 recurso_educativo_routes = Blueprint('recurso_educativo_routes', __name__)
 
 # PRESENTACIÓN DE PORTADAS DE RECURSOS EDUCATIVOS
+'''
 @recurso_educativo_routes.route('/portadas_recursos_educativos', methods=['POST'])
 def presentar_portadas_recursos_educativos():
-    inicio_tiempo = time.time()
+    #inicio_tiempo = time.time()
+    inicio_tiempo = time.perf_counter()
 
     try:
         # Validar que existe el JSON y el campo
@@ -85,7 +87,7 @@ def presentar_portadas_recursos_educativos():
         resultados_raw = [dict(row) for row in portadas_rec_edus]
         resultados = recursos_educativos_portada_schema.dump(resultados_raw)
 
-        tiempo_respuesta = time.time() - inicio_tiempo
+        tiempo_respuesta = time.perf_counter() - inicio_tiempo
         logger.info(f"Presentación de portadas de recursos educativos para id_usuario {id_usuario} completada en {tiempo_respuesta:.3f} segundos.")
 
         data = {
@@ -97,7 +99,90 @@ def presentar_portadas_recursos_educativos():
         return make_response(jsonify(data), 200)
     
     except Exception as err:
-        tiempo_respuesta = time.time() - inicio_tiempo
+        tiempo_respuesta = time.perf_counter() - inicio_tiempo
+        logger.error(f"Error al presentar portadas de recursos educativos para id_usuario {id_usuario}: {str(err)} - Tiempo de respuesta: {tiempo_respuesta:.3f} segundos.")
+        return make_response(jsonify({
+            "message": "Error al obtener portadas de recursos educativos",
+            "status": 500,
+            "error": str(err)
+        }), 500)
+'''
+
+# VERSIÓN OPTIMIZADA DE PRESENTACION DE PORTADAS DE RECURSOS EDUCATIVOS
+@recurso_educativo_routes.route('/portadas_recursos_educativos', methods=['POST'])
+def presentar_portadas_recursos_educativos():
+    inicio_tiempo = time.perf_counter()
+
+    try:
+        data_in = request.json
+        #1. Validación rápida de entrada
+        if not data_in:
+             return make_response(jsonify({'status': 400, 'message': 'JSON requerido'}), 400)
+        
+        id_usuario = data_in.get('id_usuario')
+
+        # Validar que no sea None o vacío
+        if not id_usuario:
+            return make_response(jsonify({
+                'status': 400,
+                'message': 'El campo id_usuario no puede estar vacío'
+            }), 400)
+        
+        # 2. Consulta optimizada
+        consulta_rec_educativos = """
+        WITH UltimoIntento AS (
+            SELECT 
+                id_rec_edu,
+                rpta1, rpta2, rpta3, rpta4,
+                ROW_NUMBER() OVER (
+                    PARTITION BY id_rec_edu 
+                    ORDER BY fec_resolucion DESC
+                ) as rn
+            FROM RE_RESUELTO
+            WHERE id_usuario = :id_usuario
+        )
+        SELECT 
+            RE.id_rec_edu,
+            RE.titulo,
+            RE.portada_url,
+            RE.tipo_contenido,
+            CASE 
+                WHEN UI.id_rec_edu IS NOT NULL THEN True
+                ELSE False
+            END as resuelto,
+            ROUND((
+                (
+                    (CASE WHEN UI.rpta1 = 'rpta_correcta' THEN 1 ELSE 0 END) +
+                    (CASE WHEN UI.rpta2 = 'rpta_correcta' THEN 1 ELSE 0 END) +
+                    (CASE WHEN UI.rpta3 = 'rpta_correcta' THEN 1 ELSE 0 END) +
+                    (CASE WHEN UI.rpta4 = 'rpta_correcta' THEN 1 ELSE 0 END)
+                ) * 100.0 / 4
+            ), 2) as porcentaje_acierto
+        FROM RECURSO_EDUCATIVO RE
+        LEFT JOIN UltimoIntento UI 
+            ON RE.id_rec_edu = UI.id_rec_edu 
+            AND UI.rn = 1 -- Solo tomamos el intento más reciente (fila 1)
+        ORDER BY RE.id_rec_edu;    
+        """
+
+        portadas_rec_edus = db.session.execute(text(consulta_rec_educativos), {'id_usuario': id_usuario}).mappings().fetchall()
+
+        resultados_raw = [dict(row) for row in portadas_rec_edus]
+        #resultados = recursos_educativos_portada_schema.dump(resultados_raw)
+
+        tiempo_respuesta = time.perf_counter() - inicio_tiempo
+        logger.info(f"Presentación de portadas de recursos educativos para id_usuario {id_usuario} completada en {tiempo_respuesta:.3f} segundos.")
+
+        data = {
+            "message": "Portadas de recursos educativos obtenidas correctamente",
+            "status": 200,
+            "data": resultados_raw
+        }
+
+        return make_response(jsonify(data), 200)
+    
+    except Exception as err:
+        tiempo_respuesta = time.perf_counter() - inicio_tiempo
         logger.error(f"Error al presentar portadas de recursos educativos para id_usuario {id_usuario}: {str(err)} - Tiempo de respuesta: {tiempo_respuesta:.3f} segundos.")
         return make_response(jsonify({
             "message": "Error al obtener portadas de recursos educativos",
